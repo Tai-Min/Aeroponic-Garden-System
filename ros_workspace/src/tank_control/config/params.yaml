@@ -1,0 +1,27 @@
+uc_bridge:
+  ros__parameters:
+    port: /dev/ttyUSB0
+
+/water_tank:
+  level_observer:
+    ros__parameters:
+      frame_id: water_tank
+      min_level: 5
+      max_level: 20
+      check_period: 3
+
+      closure_sensor_pin: 27
+      led_pin: 17
+      button:pin: 18
+
+/nutri_tank:
+  level_observer:
+    ros__parameters:
+      frame_id: nutri_tank
+      min_level: 5
+      max_level: 20
+      check_period: 3
+
+      closure_sensor_pin: 22
+      led_pin: 19
+      button:pin: 16

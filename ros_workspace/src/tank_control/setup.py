@@ -9,7 +9,8 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name, ['package.xml', "launch/system.launch.py"]),
+        ('share/' + package_name + "/config/", ["config/params.yaml"]),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -23,7 +24,7 @@ setup(
             'level_observer = tank_control.level_observer:main',
             'uc_bridge = tank_control.uc_bridge:main',
             'pump_driver = tank_control.pump_driver:main',
-            'nutri_quality_observer = tank_control.nutri_quality_observer:main' 
+            'nutri_quality_observer = tank_control.nutri_quality_observer:main'
         ],
     },
 )

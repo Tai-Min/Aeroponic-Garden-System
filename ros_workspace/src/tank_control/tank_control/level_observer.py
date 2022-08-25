@@ -6,7 +6,7 @@ import RPi.GPIO as GPIO
 
 
 class ClosureSensor:
-    def __init__(self, pin: int, callback: function = None, edge=GPIO.FALLING) -> None:
+    def __init__(self, pin: int, callback=None, edge=GPIO.FALLING) -> None:
         self.pin = pin
         GPIO.setup(self.pin, GPIO.IN)
         if callback:
@@ -48,7 +48,6 @@ class LevelObserver(Node):
         self.declare_parameter("closure_sensor_pin", 27)
         self.declare_parameter("led_pin", 17)
         self.declare_parameter("button_pin", 18)
-        self.declare_parameter("level_sensor_topic", "/level_raw")
 
         self.frame = self.get_parameter(
             "frame_id").get_parameter_value().string_value
@@ -58,28 +57,27 @@ class LevelObserver(Node):
             "max_level").get_parameter_value().double_value
         self.check_period = self.get_parameter(
             "check_period").get_parameter_value().double_value
-        self.level_sensor_topic = self.get_parameter(
-            "level_sensor_topic").get_parameter_value().string_value
 
         self.enabled = True
         self.previous_state = State.UNKNOWN
         self.level_sensor_value = -1
 
         self.closure_sensor = ClosureSensor(self.get_parameter(
-            "closure_sensor_pin").get_parameter_value().integer_value, self.timer_callback)
+            "closure_sensor_pin").get_parameter_value().integer_value, self.on_timer_callback)
         self.disable_button = Button(self.get_parameter(
-            "button_pin").get_parameter_value().integer_value, self.timer_callback)
+            "button_pin").get_parameter_value().integer_value, self.on_btn_pressed_callback)
         self.led = LED(self.get_parameter(
             "led_pin").get_parameter_value().integer_value)
 
         self.level_sensor_subscriber = self.create_subscription(
-            Measurement, self.level_sensor_topic, )
+            Measurement, "/level_raw", self.on_level_received_callback, 10)
         self.level_publisher = self.create_publisher(Measurement, "level", 10)
         self.state_publisher = self.create_publisher(State, "state", 10)
         self.control_service = self.create_service(
-            SetEnabled, "set_enabled", self.set_enable_callback)
+            SetEnabled, "set_enabled", self.on_set_enable_callback)
 
-        self.timer = self.create_timer(self.check_period, self.timer_callback)
+        self.timer = self.create_timer(
+            self.check_period, self.on_timer_callback)
 
     def state_str(self, state: int) -> str:
         if state == State.GOOD:
@@ -96,7 +94,13 @@ class LevelObserver(Node):
             return "TANK_OPEN"
         return "INVALID"
 
-    def set_enable_callback(self, request: SetEnabled.Request, response: SetEnabled.Request) -> None:
+    def on_level_received_callback(self, msg: Measurement) -> None:
+        self.level_sensor_value = msg.val
+
+    def on_btn_pressed_callback(self) -> None:
+        self.enabled = not self.enabled
+
+    def on_set_enable_callback(self, request: SetEnabled.Request, response: SetEnabled.Request) -> None:
 
         if request.val:
             self.get_logger().info("Measurement enabled via service")
@@ -106,7 +110,7 @@ class LevelObserver(Node):
         self.enabled = request.val
         return response
 
-    def timer_callback(self, btn_call: bool = False) -> None:
+    def on_timer_callback(self, btn_call: bool = False) -> None:
         if btn_call:
             self.get_logger().info("Callback called by button press")
 
@@ -127,7 +131,9 @@ class LevelObserver(Node):
 
         if state_msg.state != self.previous_state:
             self.get_logger().info(
-                f"Tank's state changed from {self.previous_state} to {state_msg.state}")
+                f"Tank's state changed from {self.previous_state}"
+                f" ({self.state_str(self.previous_state)}) to"
+                f" {state_msg.state} ({self.state_str(state_msg.state)})")
 
             state_msg.header.stamp = self.get_clock().now().to_msg()
             state_msg.header.frame_id = self.frame
