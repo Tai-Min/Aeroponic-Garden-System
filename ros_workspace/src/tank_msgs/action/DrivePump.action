@@ -1,0 +1,5 @@
+uint16 seconds
+---
+bool res
+---
+uint8 fulfillment

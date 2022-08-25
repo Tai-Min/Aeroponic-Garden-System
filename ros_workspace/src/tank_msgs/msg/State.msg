@@ -1,0 +1,9 @@
+uint8 UNKNOWN=0
+uint8 GOOD=1
+uint8 LEVEL_CRITICAL_LOW=2
+uint8 LEVEL_CRITICAL_HIGH=3
+uint8 TANK_OPEN=4
+uint8 MEASUREMENT_DISABLED=5
+
+std_msgs/Header header
+uint8 state
