@@ -12,7 +12,10 @@ uc_bridge:
 
       closure_sensor_pin: 27
       led_pin: 17
-      button:pin: 18
+      button_pin: 18
+      
+  pump_driver:
+    ros__parameters:
 
 /nutri_tank:
   level_observer:
@@ -24,4 +27,10 @@ uc_bridge:
 
       closure_sensor_pin: 22
       led_pin: 19
-      button:pin: 16
+      button_pin: 16
+
+  pump_driver:
+    ros__parameters:
+
+  nutri_quality_observer:
+    ros__parameters:

@@ -13,49 +13,62 @@ class Bridge(Node):
         self.declare_parameter("nutri_tank_frame", "nutri_tank")
 
         self.declare_parameter("port", "/dev/ttyUSB0")
+        self.declare_parameter("max_recv_errors", 10)
 
-        self.serial = serial.Serial(self.get_parameter(
+        self.__serial = serial.Serial(self.get_parameter(
             "port").get_parameter_value().string_value, timeout=1)
 
-        self.water_tank_frame = self.frame = self.get_parameter(
+        self.__water_tank_frame = self.frame = self.get_parameter(
             "water_tank_frame").get_parameter_value().string_value
-        self.nutri_tank_frame = self.frame = self.get_parameter(
+        self.__nutri_tank_frame = self.frame = self.get_parameter(
             "nutri_tank_frame").get_parameter_value().string_value
 
-        self.processors = [self.process_level_sensor,
-                           self.process_ec_sensor, self.process_ph_sensor]
+        self.__processors = [self.__process_level_sensor,
+                             self.__process_ec_sensor, self.__process_ph_sensor]
+        self.__max_recv_errors = self.__nutri_tank_frame = self.frame = self.get_parameter(
+            "max_recv_errors").get_parameter_value().integer_value
+        self.__err_cntr = 0
 
-        self.msg_publishers = {}
-        self.msg_publishers["u0"] = self.create_publisher(
+        self.__msg_publishers = {}
+        self.__msg_publishers["u0"] = self.create_publisher(
             Measurement, "water_tank/level_raw", 10)
-        self.msg_publishers["u1"] = self.create_publisher(
+        self.__msg_publishers["u1"] = self.create_publisher(
             Measurement, "nutri_tank/level_raw", 10)
-        self.msg_publishers["ph"] = self.create_publisher(
+        self.__msg_publishers["ph"] = self.create_publisher(
             Measurement, "nutri_tank/ph", 10)
-        self.msg_publishers["ec"] = self.create_publisher(
+        self.__msg_publishers["ec"] = self.create_publisher(
             Measurement, "nutri_tank/ec", 10)
 
-        self.timer = self.create_timer(0, self.timer_callback)
+        self.__timer = self.create_timer(0, self.__on_timer_callback)
 
-    def timer_callback(self) -> None:
+    def __on_timer_callback(self) -> None:
         """
         Process serial readings from attached sensor
         and publish them.
         """
-        payload = self.serial.readline().decode("utf-8")
+        payload = self.__serial.readline().decode("utf-8")
         payload = payload.replace("\n", "")
 
         self.get_logger().info(
             f"Processing {payload}", throttle_duration_sec=10)
 
-        for processor in self.processors:
+        for processor in self.__processors:
             if processor(payload):
+                self.__err_cntr = 0
                 return
 
         self.get_logger().warn(
-            f"{payload} does not match any known sensor pattern")
+            f"{payload} does not match any known sensor pattern,"
+            f" increasing error counter to {self.__err_cntr + 1} / {self.__max_recv_errors}")
 
-    def process_level_sensor(self, payload: str) -> bool:
+        self.__err_cntr += 1
+        if self.__err_cntr >= self.__max_recv_errors:
+            self.get_logger().error(
+                "Too many consecutive invalid payloads, stopping node"
+            )
+            self.destroy_node()
+
+    def __process_level_sensor(self, payload: str) -> bool:
         """
         Try to process ultrasonic sensor payload and publish it.
         Returns false if given payload does not match
@@ -71,7 +84,7 @@ class Bridge(Node):
         key, payload = payload.split(":")
         value, checksum = payload.split("*")
 
-        computed_checksum = self.compute_checksum(value)
+        computed_checksum = self.__compute_checksum(value)
         if computed_checksum != int(checksum):
             self.get_logger().warn(
                 f"Checksum of {key} payload does not match (received: {checksum}, computed: {computed_checksum})")
@@ -83,14 +96,14 @@ class Bridge(Node):
             f"Processed {key} payload", throttle_duration_sec=10)
 
         msg = Measurement()
-        msg.header.frame_id = self.water_tank_frame if key == "u0" else self.nutri_tank_frame
+        msg.header.frame_id = self.__water_tank_frame if key == "u0" else self.__nutri_tank_frame
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.val = value
-        self.msg_publishers[key].publish(msg)
+        self.__msg_publishers[key].publish(msg)
 
         return True
 
-    def process_ph_sensor(self, payload: str) -> bool:
+    def __process_ph_sensor(self, payload: str) -> bool:
         """
         Try to process pH sensor payload and publish it.
         Returns false if given payload does not match
@@ -106,7 +119,7 @@ class Bridge(Node):
         payload = payload[3:]
         value, checksum = payload.split("*")
 
-        computed_checksum = self.compute_checksum(value)
+        computed_checksum = self.__compute_checksum(value)
         if computed_checksum != int(checksum):
             self.get_logger().warn(
                 f"Checksum of pH payload does not match (received: {checksum}, computed: {computed_checksum})")
@@ -115,14 +128,14 @@ class Bridge(Node):
         self.get_logger().info("Processed pH payload", throttle_duration_sec=10)
 
         msg = Measurement()
-        msg.header.frame_id = self.nutri_tank_frame
+        msg.header.frame_id = self.__nutri_tank_frame
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.val = 2137
-        self.msg_publishers["ph"].publish(msg)
+        msg.val = float(value)
+        self.__msg_publishers["ph"].publish(msg)
 
         return True
 
-    def process_ec_sensor(self, payload: str) -> bool:
+    def __process_ec_sensor(self, payload: str) -> bool:
         """
         Try to process EC sensor payload and publish it.
         Returns false if given payload does not match
@@ -138,7 +151,7 @@ class Bridge(Node):
         payload = payload[3:]
         value, checksum = payload.split("*")
 
-        computed_checksum = self.compute_checksum(value)
+        computed_checksum = self.__compute_checksum(value)
         if computed_checksum != int(checksum):
             self.get_logger().warn(
                 f"Checksum of EC payload does not match (received: {checksum}, computed: {computed_checksum})")
@@ -147,14 +160,14 @@ class Bridge(Node):
         self.get_logger().info("Processed EC payload", throttle_duration_sec=10)
 
         msg = Measurement()
-        msg.header.frame_id = self.nutri_tank_frame
+        msg.header.frame_id = self.__nutri_tank_frame
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.val = 2137
-        self.msg_publishers["ec"].publish(msg)
+        msg.val = float(value)
+        self.__msg_publishers["ec"].publish(msg)
 
         return True
 
-    def compute_checksum(self, val: str) -> int:
+    def __compute_checksum(self, val: str) -> int:
         """
         Compute checksum of given value string.
         For checksum computation a value

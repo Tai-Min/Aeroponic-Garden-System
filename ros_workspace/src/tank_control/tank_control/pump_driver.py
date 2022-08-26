@@ -11,28 +11,28 @@ class PumpDriver(Node):
         super().__init__("pump_driver")
 
         self.declare_parameter("pump_pin", 17)
-        self.pump = self.get_parameter(
+        self.__pump = self.get_parameter(
             "pump_pin").get_parameter_value().integer_value
-        GPIO.setup(self.pump, GPIO.OUT)
+        GPIO.setup(self.__pump, GPIO.OUT)
 
-        self.server = ActionServer(
-            self, DrivePump, "drive", self.drive_pump
+        self.__server = ActionServer(
+            self, DrivePump, "drive", self.__on_drive_callback
         )
         self.get_logger().info("Pump driver is running")
 
-    def drive_pump(self, handle) -> DrivePump.Result:
+    def __on_drive_callback(self, handle) -> DrivePump.Result:
         self.get_logger().info(f"Driving pump for {handle.request.seconds}")
 
         feedback_msg = DrivePump.Feedback()
 
-        GPIO.output(self.pump, GPIO.HIGH)
+        GPIO.output(self.__pump, GPIO.HIGH)
 
         for i in range(handle.request.seconds):
             feedback_msg.fulfillment = int(i / handle.request.seconds * 100)
             handle.publish_feedback(feedback_msg)
             time.sleep(1)
 
-        GPIO.output(self.pump, GPIO.LOW)
+        GPIO.output(self.__pump, GPIO.LOW)
 
         handle.succeed()
 
