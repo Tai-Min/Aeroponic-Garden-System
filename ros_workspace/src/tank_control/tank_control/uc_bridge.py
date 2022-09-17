@@ -17,6 +17,7 @@ class Bridge(Node):
 
         self.__serial = serial.Serial(self.get_parameter(
             "port").get_parameter_value().string_value, timeout=1)
+        self.get_logger().info(f"uC serial port is: {self.__serial}")
 
         self.__water_tank_frame = self.frame = self.get_parameter(
             "water_tank_frame").get_parameter_value().string_value

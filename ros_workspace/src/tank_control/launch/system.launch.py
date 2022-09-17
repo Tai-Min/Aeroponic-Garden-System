@@ -22,7 +22,7 @@ def generate_launch_description() -> LaunchDescription:
         name="uc_bridge",
         parameters=[config]
     )
-    ld.add_action(uc_bridge)
+    #ld.add_action(uc_bridge)
 
     water_tank_level_observer = Node(
         package=pkg_name,
