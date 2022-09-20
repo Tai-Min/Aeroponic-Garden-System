@@ -5,34 +5,48 @@
 #include "timer.hpp"
 
 void usensor_setup();
-int16_t usensor_read(const LevelSensorHardware &sensor);
+int16_t usensor_read(uint8_t sensor);
 
 namespace
 {
+    /**
+     * @brief Set pin as output.
+     */
+    inline void setOutput(uint8_t pin);
+
+    /**
+     * @brief Set pin as input.
+     */
+    inline void setInput(uint8_t pin);
+
+    /**
+     * @brief Set level of output pin.
+     */
+    inline void setLevel(uint8_t pin, bool level);
+
+    /**
+     * @brief Read level of input pin.
+     */
+    inline uint8_t readLevel(uint8_t pin);
+
     /**
      * @brief Perform single measurement.
      * @param sensor Sensor to read.
      * @return Level in milimeters or -1 if fail.
      */
-    int16_t readSingle(const LevelSensorHardware &sensor);
+    int16_t readSingle(uint8_t sensor);
 }
 
 //****************
 // Implementation.
 //****************
 
-#define SET_OUTPUT(REGISTER, REGISTER_BIT) *REGISTER |= (1 << REGISTER_BIT)
-#define SET_INPUT(REGISTER, REGISTER_BIT) *REGISTER &= ~(1 << REGISTER_BIT)
-
-#define SET_LEVEL(PORT, PORT_BIT, LEVEL) LEVEL ? *PORT |= (1 << PORT_BIT) : *PORT &= ~(1 << PORT_BIT)
-#define READ_LEVEL(PIN, PIN_BIT) (*PIN & (1 << PIN_BIT))
-
-void usensor_common_setup()
+void usensor_commonSetup()
 {
     timer_setup();
 }
 
-int16_t usensor_read(const LevelSensorHardware &sensor)
+int16_t usensor_read(uint8_t sensor)
 {
     constexpr uint8_t maxReadings = 10;
 
@@ -50,29 +64,53 @@ int16_t usensor_read(const LevelSensorHardware &sensor)
         performedReadings++;
     }
 
+    if (!performedReadings)
+        return -1;
+
     return total / performedReadings;
 }
 
 namespace
 {
-    int16_t readSingle(const LevelSensorHardware &sensor)
+
+    inline void setOutput(uint8_t pin)
+    {
+        DDRB |= (1 << pin);
+    }
+
+    inline void setInput(uint8_t pin)
+    {
+        DDRB &= ~(1 << pin);
+    }
+
+    inline void setLevel(uint8_t pin, bool level)
+    {
+        level ? PORTB |= (1 << pin) : PORTB &= ~(1 << pin);
+    }
+
+    inline uint8_t readLevel(uint8_t pin)
+    {
+        return (PINB & (1 << pin));
+    }
+
+    int16_t readSingle(uint8_t sensor)
     {
         uint32_t startUs;
         uint32_t stopUs;
         constexpr uint32_t toutUs = 40000;
 
         // Trigger.
-        SET_OUTPUT(sensor.reg, sensor.regBit);
-        SET_LEVEL(sensor.port, sensor.portBit, 1);
+        setOutput(sensor);
+        setLevel(sensor, 1);
         _delay_us(11);
-        SET_LEVEL(sensor.port, sensor.portBit, 0);
-        SET_INPUT(sensor.reg, sensor.regBit);
+        setLevel(sensor, 0);
+        setInput(sensor);
 
         // Wait for pin to go up (start measure distance).
         timer_reset();
         startUs = timer_read();
         stopUs = startUs;
-        while (!READ_LEVEL(sensor.pin, sensor.pinBit))
+        while (!readLevel(sensor))
         {
             startUs = timer_read();
             if (startUs - stopUs > toutUs)
@@ -81,7 +119,7 @@ namespace
 
         // Wait for pin to go low (stop measure distance).
         stopUs = startUs;
-        while (READ_LEVEL(sensor.pin, sensor.pinBit))
+        while (readLevel(sensor))
         {
             stopUs = timer_read();
             if (stopUs - startUs > toutUs)
@@ -90,7 +128,7 @@ namespace
 
         // Compute time of flight to distance.
         uint32_t stamp = stopUs - startUs;
-        uint32_t distanceMilimeters = stamp * 343 / 2000;
+        uint32_t distanceMilimeters = stamp * 346 / 2000; // Using 25 degrees Celsius reference.
 
         if (distanceMilimeters > 4000)
             return -1;
