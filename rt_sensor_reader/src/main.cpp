@@ -12,6 +12,7 @@
 #ifndef BLINK_TEST
 int main()
 {
+  _delay_ms(30000);
   transmitter_setup();
   usensor_commonSetup();
   phsensor_setup();

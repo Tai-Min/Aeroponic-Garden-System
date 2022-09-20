@@ -5,7 +5,8 @@
 ## Electronics
 ### Attiny85
 * Connect some programmer (i.e. ArduinoISP or USBasp) to Attiny85
-* In PlatformIO press "Set Fuses" in "attiny85" configuration, then click "Upload"
+* In platformio.ini change upload_protocol to your programmer
+* In PlatformIO menu press "Set Fuses" in "attiny85" configuration, then click "Upload"
 * Insert Attiny85 into Global Controller's shield
 
 ## Global controller setup
