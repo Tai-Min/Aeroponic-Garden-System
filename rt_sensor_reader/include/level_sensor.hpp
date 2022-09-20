@@ -17,7 +17,7 @@ struct LevelSensorHardware
 /**
  * @brief Setup ultrasonic level sensor's common hardware.
  */
-void usensor_setup();
+void usensor_common_setup();
 
 /**
  * @brief Read level of ultrasonic level sensor in milimeters.

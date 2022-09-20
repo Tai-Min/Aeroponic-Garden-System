@@ -5,6 +5,6 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(field_controller)
 
+set_property(TARGET app PROPERTY CXX_STANDARD 11)
 target_include_directories(app PRIVATE include)
-target_include_directories(app PRIVATE src)
-target_sources(app PRIVATE src/main.cpp src/zigbee/zigbee.cpp)
+target_sources(app PRIVATE src/main.cpp src/zigbee.cpp)

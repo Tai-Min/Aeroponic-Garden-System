@@ -13,13 +13,12 @@ namespace app
             {
                 enum class Values : uint8_t
                 {
-                    HEATER,
-                    HEATER_STRATEGY,
+                    FAN,
+                    RELAY_WATER,
+                    RELAY_NUTRI,
                     LED_SIDE_1,
                     LED_SIDE_2,
                     LED_STRATEGY,
-                    RELAY_WATER,
-                    RELAY_NUTRI
                 };
                 static constexpr uint8_t length() { return 7; }
             };

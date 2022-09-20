@@ -10,17 +10,17 @@ namespace app
             class Output
             {
             public:
-                bool init();
-                void setState(bool state);
-                bool ok();
+                bool init() { return true; }
+                void setState(bool state) {}
+                bool ok() { return true; }
             };
 
             class Input
             {
             public:
-                bool init();
-                bool getState();
-                bool ok();
+                bool init() { return true; }
+                bool getState() { return true; }
+                bool ok() { return true; }
             };
         }
 
@@ -29,17 +29,17 @@ namespace app
             class PWM
             {
             public:
-                bool init();
-                void setState(uint16_t state);
-                bool ok();
+                bool init() { return true; }
+                void setState(uint16_t state) {}
+                bool ok() { return true; }
             };
 
             class ADC
             {
             public:
-                bool init();
-                uint8_t getState();
-                bool ok();
+                bool init() { return true; }
+                uint8_t getState() { return 0; }
+                bool ok() { return true; }
             };
         }
     }
