@@ -43,7 +43,7 @@ class PumpDriver(Node):
             self.__tank_state = state_msg.state
 
     def __on_drive_callback(self, handle: ServerGoalHandle) -> DrivePump.Result:
-        self.get_logger().info(f"Driving pump for {handle.request.seconds}")
+        self.get_logger().info(f"Driving pump for {handle.request.seconds} seconds")
 
         result = DrivePump.Result()
         feedback_msg = DrivePump.Feedback()

@@ -46,7 +46,7 @@ class LED:
         elif state == State.UNKNOWN:
             self.__pwm.ChangeDutyCycle(50)
             self.__pwm.ChangeFrequency(1)
-        elif state ==  State.LEVEL_CRITICAL_HIGH:
+        elif state == State.LEVEL_CRITICAL_HIGH:
             self.__pwm.ChangeDutyCycle(50)
             self.__pwm.ChangeFrequency(2)
         elif state == State.LEVEL_CRITICAL_LOW:
@@ -88,6 +88,7 @@ class LevelObserver(Node):
         self.get_logger().info(
             f"Sensor reading will be invalidated after: {self.__value_invalidate_time}s")
 
+        self.fst = True
         self.__enabled = True
         self.__previous_state = State.UNKNOWN
         self.__level_sensor_value = -1
@@ -176,17 +177,21 @@ class LevelObserver(Node):
         else:
             state_msg.state = State.GOOD
 
-        if state_msg.state != self.__previous_state:
-            self.get_logger().info(
-                f"Tank's state changed from {self.__previous_state}"
-                f" ({state_str(self.__previous_state)}) to"
-                f" {state_msg.state} ({state_str(state_msg.state)})")
+        if state_msg.state != self.__previous_state or self.fst:
+
+            if not self.fst:
+                self.get_logger().info(
+                    f"Tank's state changed from {self.__previous_state}"
+                    f" ({state_str(self.__previous_state)}) to"
+                    f" {state_msg.state} ({state_str(state_msg.state)})")
 
             state_msg.header.stamp = self.get_clock().now().to_msg()
             state_msg.header.frame_id = self.__frame
             self.__state_publisher.publish(state_msg)
             self.__led.set_state(state_msg.state)
             self.__previous_state = state_msg.state
+
+            self.fst = False
 
         if state_msg.state in [State.LEVEL_CRITICAL_HIGH, State.LEVEL_CRITICAL_LOW, State.GOOD]:
             level_msg = Measurement()

@@ -1,6 +1,6 @@
 uc_bridge:
   ros__parameters:
-    port: /dev/ttyS0
+    port: /dev/ttyAMA0
 
 /water_tank:
   level_observer:

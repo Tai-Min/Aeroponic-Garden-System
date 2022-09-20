@@ -15,19 +15,26 @@ class Bridge(Node):
         self.declare_parameter("port", "/dev/ttyUSB0")
         self.declare_parameter("max_recv_errors", 10)
 
-        self.__serial = serial.Serial(self.get_parameter(
-            "port").get_parameter_value().string_value, timeout=1)
-        self.get_logger().info(f"uC serial port is: {self.__serial}")
+        port = self.get_parameter("port").get_parameter_value().string_value
+        self.__serial = serial.Serial(port, timeout=1)
+        self.get_logger().info(f"uC serial port is: {port}")
 
-        self.__water_tank_frame = self.frame = self.get_parameter(
+        self.__water_tank_frame = self.get_parameter(
             "water_tank_frame").get_parameter_value().string_value
-        self.__nutri_tank_frame = self.frame = self.get_parameter(
+        self.get_logger().info(
+            f"Water tank frame is: {self.__water_tank_frame}")
+        self.__nutri_tank_frame = self.get_parameter(
             "nutri_tank_frame").get_parameter_value().string_value
+        self.get_logger().info(
+            f"Nutri tank frame is: {self.__nutri_tank_frame}")
 
         self.__processors = [self.__process_level_sensor,
                              self.__process_ec_sensor, self.__process_ph_sensor]
-        self.__max_recv_errors = self.__nutri_tank_frame = self.frame = self.get_parameter(
+        self.__max_recv_errors = self.get_parameter(
             "max_recv_errors").get_parameter_value().integer_value
+        self.get_logger().info(
+            f"Bridge will fail at: {self.__max_recv_errors} errors in a row")
+
         self.__err_cntr = 0
 
         self.__msg_publishers = {}
@@ -49,6 +56,9 @@ class Bridge(Node):
         """
         payload = self.__serial.readline().decode("utf-8")
         payload = payload.replace("\n", "")
+
+        if not payload:
+            return
 
         self.get_logger().info(
             f"Processing {payload}", throttle_duration_sec=10)
@@ -94,7 +104,7 @@ class Bridge(Node):
         value = float(value) / 1000  # To meters.
 
         self.get_logger().info(
-            f"Processed {key} payload", throttle_duration_sec=10)
+            f"Processed {key} payload (value: {value}m)", throttle_duration_sec=10)
 
         msg = Measurement()
         msg.header.frame_id = self.__water_tank_frame if key == "u0" else self.__nutri_tank_frame
@@ -126,7 +136,9 @@ class Bridge(Node):
                 f"Checksum of pH payload does not match (received: {checksum}, computed: {computed_checksum})")
             return True
 
-        self.get_logger().info("Processed pH payload", throttle_duration_sec=10)
+        value = float(value) / 1000.0 # To pH.
+
+        self.get_logger().info(f"Processed pH payload (value: {value}pH)", throttle_duration_sec=10)
 
         msg = Measurement()
         msg.header.frame_id = self.__nutri_tank_frame
@@ -158,7 +170,7 @@ class Bridge(Node):
                 f"Checksum of EC payload does not match (received: {checksum}, computed: {computed_checksum})")
             return True
 
-        self.get_logger().info("Processed EC payload", throttle_duration_sec=10)
+        self.get_logger().info(f"Processed EC payload (value: {value}ppm)", throttle_duration_sec=10)
 
         msg = Measurement()
         msg.header.frame_id = self.__nutri_tank_frame
