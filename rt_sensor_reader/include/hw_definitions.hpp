@@ -13,5 +13,5 @@ constexpr uint8_t u1 = PB2;
 constexpr char phPrefix[] = "ph";
 constexpr uint8_t ph = PB3;
 
-constexpr char ecPrefix[] = "ec";
+constexpr char ecPrefix[] = "tds";
 constexpr uint8_t ec = PB4;

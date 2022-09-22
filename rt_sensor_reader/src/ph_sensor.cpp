@@ -17,9 +17,10 @@ void phsensor_setup()
 int16_t phsensor_read()
 {
     constexpr uint16_t aReadResolution = 1024;
+    constexpr int16_t offsetAnalogRead = 205; // Around 1V.
     constexpr uint8_t maxReadings = 10;
 
-    uint32_t total = 0;
+    uint16_t total = 0;
 
     // Compute average of up to maxReadings.
     for (uint8_t i = 0; i < maxReadings; i++)
@@ -30,5 +31,10 @@ int16_t phsensor_read()
 
     uint16_t avg = total / maxReadings;
 
-    return avg * (14000 / aReadResolution); // To 0 - 14000 milli pH range.
+    int16_t ph = ((aReadResolution - avg) + offsetAnalogRead) / 10 * 171;
+
+    if (ph < 0 || ph > 14000)
+        return -1;
+
+    return ph;
 }

@@ -1,9 +1,9 @@
-#include "ec_sensor.hpp"
+#include "tds_sensor.hpp"
 #include "adc.hpp"
 #include "hw_definitions.hpp"
 
-void ecsensor_setup();
-int16_t ecsensor_read();
+void tdssensor_setup();
+int16_t tdssensor_read();
 
 namespace
 {
@@ -17,25 +17,26 @@ namespace
 // Implementation.
 //****************
 
-void ecsensor_setup()
+void tdssensor_setup()
 {
     adc_commonSetup();
 }
 
-int16_t ecsensor_read()
+int16_t tdssensor_read()
 {
+    // Tuned by hand.
+    // I don't trust Arduino source code of this sensor
+    // due to divides by 0 in the code.
+    // Tuned at 25 celsius degrees.
+    constexpr int32_t a = 9580;
+    constexpr int32_t b = -1366;
+
     constexpr uint8_t vRefVolts = 5;
     constexpr uint16_t aReadResolution = 1024;
-    constexpr float kValue = 0.67; // Per https://www.omnicalculator.com/chemistry/tds
+
     uint16_t measurement = readAvg();
 
-    // Per https://github.com/DFRobot/GravityTDS/blob/master/GravityTDS.cpp
-    // not good source though? As there is clear division by 0 in the source.
-    float asVoltage = (float)measurement * (float)vRefVolts / (float)aReadResolution;
-
-    // Assume that ambient temp is already 25 degrees Celsius.
-    float ec25 = asVoltage * (133.42 * asVoltage * asVoltage - 255.86 * asVoltage + 857.39) * kValue;
-    int16_t tds = ec25 * 0.5;
+    int16_t tds = (measurement * vRefVolts * a / aReadResolution + b) / 10;
 
     if (tds > 1000)
         return -1;

@@ -5,7 +5,7 @@
 #include "transmitter.hpp"
 #include "level_sensor.hpp"
 #include "ph_sensor.hpp"
-#include "ec_sensor.hpp"
+#include "tds_sensor.hpp"
 #include "hw_definitions.hpp"
 #endif
 
@@ -16,14 +16,14 @@ int main()
   transmitter_setup();
   usensor_commonSetup();
   phsensor_setup();
-  ecsensor_setup();
+  tdssensor_setup();
 
   while (true)
   {
     transmitter_sendMeasurement(u0Prefix, usensor_read(u0));
     transmitter_sendMeasurement(u1Prefix, usensor_read(u1));
     transmitter_sendMeasurement(phPrefix, phsensor_read());
-    transmitter_sendMeasurement(ecPrefix, ecsensor_read());
+    transmitter_sendMeasurement(ecPrefix, tdssensor_read());
     _delay_ms(10);
   }
 }
