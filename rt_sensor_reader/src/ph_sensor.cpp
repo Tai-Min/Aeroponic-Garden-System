@@ -31,7 +31,7 @@ int16_t phsensor_read()
 
     uint16_t avg = total / maxReadings;
 
-    int16_t ph = ((aReadResolution - avg) + offsetAnalogRead) / 10 * 171;
+    int16_t ph = ((aReadResolution - avg) + offsetAnalogRead) / 10 * PH_MAGIC_NUMBER;
 
     if (ph < 0 || ph > 14000)
         return -1;

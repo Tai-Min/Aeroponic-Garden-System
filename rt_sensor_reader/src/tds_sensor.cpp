@@ -28,8 +28,8 @@ int16_t tdssensor_read()
     // I don't trust Arduino source code of this sensor
     // due to divides by 0 in the code.
     // Tuned at 25 celsius degrees.
-    constexpr int32_t a = 9580;
-    constexpr int32_t b = -1366;
+    constexpr int32_t a = TDS_A;
+    constexpr int32_t b = TDS_B;
 
     constexpr uint8_t vRefVolts = 5;
     constexpr uint16_t aReadResolution = 1024;
