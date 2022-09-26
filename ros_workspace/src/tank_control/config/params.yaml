@@ -1,6 +1,25 @@
 uc_bridge:
   ros__parameters:
+    water_tank_frame: water_tank
+    nutri_tank_frame: nutri_tank
     port: /dev/ttyAMA0
+    max_recv_errors: 10
+
+temperature_observer:
+  ros__parameters:
+    
+    water_tank_frame: water_tank
+    water_tank_sensor_addr: 0
+    min_water_temp: 0.0
+    max_water_temp: 0.0
+
+    nutri_tank_frame: nutri_tank
+    nutri_tank_sensor_addr: 0
+    min_nutri_temp: 0.0
+    max_nutri_temp: 0.0
+
+    wire_pin: 1
+    max_recv_errors: 10
 
 /water_tank:
   level_observer:
@@ -42,12 +61,10 @@ uc_bridge:
 
       check_period: 1.0
 
-      desired_ppm: 0.0
       min_ppm: 0.0
       max_ppm: 0.0
       ppm_value_invalidate_time: 5.0
 
-      desired_ph: 0.0
       min_ph: 0.0
       max_ph: 0.0
       ph_value_invalidate_time: 5.0

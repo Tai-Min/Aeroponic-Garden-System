@@ -47,7 +47,9 @@ class Bridge(Node):
         self.__msg_publishers["tds"] = self.create_publisher(
             Measurement, f"{self.__nutri_tank_frame}/tds_raw", 10)
 
-        self.__timer = self.create_timer(0, self.__on_timer_callback)
+        self.__timer = self.create_timer(0.1, self.__on_timer_callback)
+
+        self.get_logger().info("uC bridge is running")
 
     def __on_timer_callback(self) -> None:
         """

@@ -26,6 +26,7 @@ find_package(std_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/LevelState.msg"
   "msg/QualityState.msg"
+  "msg/TemperatureState.msg"
   "msg/Measurement.msg"
   "srv/SetEnabled.srv"
   "action/DrivePump.action"

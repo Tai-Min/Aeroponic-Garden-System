@@ -1,5 +1,5 @@
 import RPi.GPIO as GPIO
-from tank_msgs.msg import LevelState, QualityState
+from tank_msgs.msg import LevelState, QualityState, TemperatureState
 
 
 def level_state_pretty_str(state: LevelState) -> str:
@@ -45,6 +45,18 @@ def quality_state_str(state: LevelState) -> str:
         return "MEASUREMENT_DISABLED"
     elif state == LevelState.TANK_OPEN:
         return "TANK_OPEN"
+    return "INVALID"
+
+
+def temperature_state_str(state: TemperatureState) -> str:
+    if state == TemperatureState.GOOD:
+        return "GOOD"
+    elif state == TemperatureState.UNKNOWN:
+        return "UNKNOWN"
+    elif state == TemperatureState.TOO_COLD:
+        return "TOO_COLD"
+    elif state == TemperatureState.TOO_HOT:
+        return "TOO_HOT"
     return "INVALID"
 
 
@@ -100,17 +112,17 @@ class LevelLED(LED):
 
 
 class QualityLED(LED):
-    def set_state(self, state: LevelState) -> None:
-        if state == LevelState.GOOD:
+    def set_state(self, state: QualityState) -> None:
+        if state == QualityState.GOOD:
             self._pwm.ChangeDutyCycle(0)
-        elif state == LevelState.UNKNOWN:
+        elif state == QualityState.UNKNOWN:
             self._pwm.ChangeDutyCycle(50)
             self._pwm.ChangeFrequency(1)
-        elif state == LevelState.LEVEL_CRITICAL_HIGH:
+        elif state == QualityState.BAD_PH:
             self._pwm.ChangeDutyCycle(50)
             self._pwm.ChangeFrequency(2)
-        elif state == LevelState.LEVEL_CRITICAL_LOW:
+        elif state == QualityState.BAD_TDS:
             self._pwm.ChangeDutyCycle(50)
-            self._pwm.ChangeFrequency(0.5)
-        elif state in [LevelState.TANK_OPEN, LevelState.MEASUREMENT_DISABLED]:
+            self._pwm.ChangeFrequency(4)
+        elif state == QualityState.BAD_ALL:
             self._pwm.ChangeDutyCycle(100)

@@ -11,15 +11,10 @@ class QualityObserver(Node):
         super().__init__("quality_observer")
 
         self.declare_parameter("frame_id", "tank")
-
-        self.declare_parameter("desired_ppm", 500.0)
         self.declare_parameter("min_ppm", 0.0)
         self.declare_parameter("max_ppm", 1000.0)
-
-        self.declare_parameter("desired_ph", 7.5)
         self.declare_parameter("min_ppm", 0.0)
         self.declare_parameter("max_ppm", 14.0)
-
         self.declare_parameter("led_pin", 22)
 
         self.__frame = self.get_parameter(
@@ -31,9 +26,6 @@ class QualityObserver(Node):
         self.get_logger().info(
             f"Quality will be checked once per: {self.__check_period}s")
 
-        self.__desired_ppm = self.get_parameter(
-            "desired_ppm").get_parameter_value().double_value
-        self.get_logger().info(f"Desired PPM is: {self.__desired_ppm}ppm")
         self.__min_ppm = self.get_parameter(
             "min_ppm").get_parameter_value().double_value
         self.get_logger().info(f"Minimum PPM is: {self.__min_ppm}ppm")
@@ -45,9 +37,6 @@ class QualityObserver(Node):
         self.get_logger().info(
             f"TDS sensor reading will be invalidated after: {self.__tds_invalidate_time}s")
 
-        self.__desired_ph = self.get_parameter(
-            "desired_ph").get_parameter_value().double_value
-        self.get_logger().info(f"Desired pH is: {self.__desired_ph}pH")
         self.__min_ph = self.get_parameter(
             "min_ph").get_parameter_value().double_value
         self.get_logger().info(f"Minimum pH is: {self.__min_ph}pH")
