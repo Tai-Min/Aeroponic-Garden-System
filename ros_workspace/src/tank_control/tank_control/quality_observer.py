@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node, SetParametersResult, Parameter
 from tank_msgs.msg import QualityState, Measurement
 import RPi.GPIO as GPIO
-from .submodules.common import QualityLED
+from .submodules.common import quality_state_str, QualityLED
 
 
 class QualityObserver(Node):
@@ -158,8 +158,8 @@ class QualityObserver(Node):
             if not self.__fst:
                 self.get_logger().info(
                     f"Liquid state changed from {self.__previous_state}"
-                    f" ({state_str(self.__previous_state)}) to"
-                    f" {state_msg.state} ({state_str(state_msg.state)})")
+                    f" ({quality_state_str(self.__previous_state)}) to"
+                    f" {state_msg.state} ({quality_state_str(state_msg.state)})")
 
             state_msg.header.stamp = self.get_clock().now().to_msg()
             state_msg.header.frame_id = self.__frame

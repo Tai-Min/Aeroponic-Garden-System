@@ -1,8 +1,8 @@
 import RPi.GPIO as GPIO
-from tank_msgs.msg import LevelState
+from tank_msgs.msg import LevelState, QualityState
 
 
-def state_pretty_str(state: LevelState) -> str:
+def level_state_pretty_str(state: LevelState) -> str:
     if state == LevelState.GOOD:
         return "[INFO] Tank is operating properly."
     elif state == LevelState.UNKNOWN:
@@ -18,7 +18,21 @@ def state_pretty_str(state: LevelState) -> str:
     return "INVALID"
 
 
-def state_str(state: LevelState) -> str:
+def level_state_str(state: QualityState) -> str:
+    if state == QualityState.GOOD:
+        return "GOOD"
+    elif state == QualityState.UNKNOWN:
+        return "UNKNOWN"
+    elif state == QualityState.BAD_TDS:
+        return "BAD_TDS"
+    elif state == QualityState.BAD_PH:
+        return "BAD_PH"
+    elif state == QualityState.BAD_ALL:
+        return "BAD_ALL"
+    return "INVALID"
+
+
+def quality_state_str(state: LevelState) -> str:
     if state == LevelState.GOOD:
         return "GOOD"
     elif state == LevelState.UNKNOWN:
@@ -68,7 +82,6 @@ class LED:
         self._pwm.ChangeDutyCycle(0)
 
 
-
 class LevelLED(LED):
     def set_state(self, state: LevelState) -> None:
         if state == LevelState.GOOD:
@@ -84,6 +97,7 @@ class LevelLED(LED):
             self._pwm.ChangeFrequency(0.5)
         elif state in [LevelState.TANK_OPEN, LevelState.MEASUREMENT_DISABLED]:
             self._pwm.ChangeDutyCycle(100)
+
 
 class QualityLED(LED):
     def set_state(self, state: LevelState) -> None:

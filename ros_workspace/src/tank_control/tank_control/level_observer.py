@@ -5,7 +5,7 @@ from rclpy.node import Node, SetParametersResult, Parameter
 from tank_msgs.msg import LevelState, Measurement
 from tank_msgs.srv import SetEnabled
 import RPi.GPIO as GPIO
-from .submodules.common import state_str, LevelLED, Button, ClosureSensor
+from .submodules.common import level_state_str, LevelLED, Button, ClosureSensor
 
 
 class LevelObserver(Node):
@@ -158,8 +158,8 @@ class LevelObserver(Node):
             if not self.__fst:
                 self.get_logger().info(
                     f"Tank's state changed from {self.__previous_state}"
-                    f" ({state_str(self.__previous_state)}) to"
-                    f" {state_msg.state} ({state_str(state_msg.state)})")
+                    f" ({level_state_str(self.__previous_state)}) to"
+                    f" {state_msg.state} ({level_state_str(state_msg.state)})")
 
             state_msg.header.stamp = self.get_clock().now().to_msg()
             state_msg.header.frame_id = self.__frame
