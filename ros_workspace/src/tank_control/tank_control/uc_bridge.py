@@ -39,13 +39,13 @@ class Bridge(Node):
 
         self.__msg_publishers = {}
         self.__msg_publishers["u0"] = self.create_publisher(
-            Measurement, "water_tank/level_raw", 10)
+            Measurement, f"{self.__water_tank_frame}/level_raw", 10)
         self.__msg_publishers["u1"] = self.create_publisher(
-            Measurement, "nutri_tank/level_raw", 10)
+            Measurement, f"{self.__nutri_tank_frame}/level_raw", 10)
         self.__msg_publishers["ph"] = self.create_publisher(
-            Measurement, "nutri_tank/ph_raw", 10)
+            Measurement, f"{self.__nutri_tank_frame}/ph_raw", 10)
         self.__msg_publishers["tds"] = self.create_publisher(
-            Measurement, "nutri_tank/tds_raw", 10)
+            Measurement, f"{self.__nutri_tank_frame}/tds_raw", 10)
 
         self.__timer = self.create_timer(0, self.__on_timer_callback)
 

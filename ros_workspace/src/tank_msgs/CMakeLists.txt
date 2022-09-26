@@ -24,7 +24,8 @@ find_package(std_msgs REQUIRED)
 # find_package(<dependency> REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/State.msg"
+  "msg/LevelState.msg"
+  "msg/QualityState.msg"
   "msg/Measurement.msg"
   "srv/SetEnabled.srv"
   "action/DrivePump.action"

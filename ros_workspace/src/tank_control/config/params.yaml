@@ -17,7 +17,6 @@ uc_bridge:
       
   pump_driver:
     ros__parameters:
-      tank_state_topic: water_tank/state
       pump_pin: 3
 
 /nutri_tank:
@@ -37,7 +36,20 @@ uc_bridge:
     ros__parameters:
       pump_pin: 25
 
-  nutri_quality_observer:
+  quality_observer:
     ros__parameters:
-      tank_state_topic: nutri_tank/state
+      frame_id: nutri_tank
+
+      check_period: 1.0
+
+      desired_ppm: 0.0
+      min_ppm: 0.0
+      max_ppm: 0.0
+      ppm_value_invalidate_time: 5.0
+
+      desired_ph: 0.0
+      min_ph: 0.0
+      max_ph: 0.0
+      ph_value_invalidate_time: 5.0
+      
       led_pin: 22

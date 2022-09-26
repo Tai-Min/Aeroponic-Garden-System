@@ -1,59 +1,11 @@
+from inspect import Parameter
 import time
 import rclpy
-from rclpy.node import Node
-from tank_msgs.msg import State, Measurement
+from rclpy.node import Node, SetParametersResult, Parameter
+from tank_msgs.msg import LevelState, Measurement
 from tank_msgs.srv import SetEnabled
 import RPi.GPIO as GPIO
-from .submodules.common import state_str
-
-
-class ClosureSensor:
-    def __init__(self, pin: int, name, callback=None, edge=GPIO.BOTH) -> None:
-        self.__pin = pin
-        GPIO.setup(self.__pin, GPIO.IN)
-        if callback:
-            GPIO.add_event_detect(
-                self.__pin, edge, lambda _: callback(name))
-
-    def is_open(self) -> bool:
-        return GPIO.input(self.__pin)
-
-
-class Button(ClosureSensor):
-    def __init__(self, pin: int, name, callback=None, edge=GPIO.RISING) -> None:
-        self.__pin = pin
-        GPIO.setup(self.__pin, GPIO.IN)
-        if callback:
-            GPIO.add_event_detect(
-                self.__pin, edge, lambda _: callback(name))
-
-    def is_pressed(self) -> bool:
-        return not GPIO.input(self.__pin)
-
-
-class LED:
-    def __init__(self, pin: int) -> None:
-        GPIO.setup(pin, GPIO.OUT)
-        self.__pwm = GPIO.PWM(pin, 3)
-        self.__pwm.start(0)
-
-    def __del__(self) -> None:
-        self.__pwm.ChangeDutyCycle(0)
-
-    def set_state(self, state: int) -> None:
-        if state == State.GOOD:
-            self.__pwm.ChangeDutyCycle(0)
-        elif state == State.UNKNOWN:
-            self.__pwm.ChangeDutyCycle(50)
-            self.__pwm.ChangeFrequency(1)
-        elif state == State.LEVEL_CRITICAL_HIGH:
-            self.__pwm.ChangeDutyCycle(50)
-            self.__pwm.ChangeFrequency(2)
-        elif state == State.LEVEL_CRITICAL_LOW:
-            self.__pwm.ChangeDutyCycle(50)
-            self.__pwm.ChangeFrequency(0.5)
-        elif state in [State.TANK_OPEN, State.MEASUREMENT_DISABLED]:
-            self.__pwm.ChangeDutyCycle(100)
+from .submodules.common import state_str, LevelLED, Button, ClosureSensor
 
 
 class LevelObserver(Node):
@@ -88,9 +40,9 @@ class LevelObserver(Node):
         self.get_logger().info(
             f"Sensor reading will be invalidated after: {self.__value_invalidate_time}s")
 
-        self.fst = True
+        self.__fst = True
         self.__enabled = True
-        self.__previous_state = State.UNKNOWN
+        self.__previous_state = LevelState.UNKNOWN
         self.__level_sensor_value = -1
         self.__last_value_stamp = -1
 
@@ -110,19 +62,43 @@ class LevelObserver(Node):
             "led_pin").get_parameter_value().integer_value
         self.get_logger().info(
             f"LED GPIO (BCM) is: {led_pin}")
-        self.__led = LED(led_pin)
+        self.__led = LevelLED(led_pin)
 
         self.__level_sensor_subscriber = self.create_subscription(
             Measurement, "level_raw", self.__on_level_received_callback, 10)
         self.__level_publisher = self.create_publisher(
             Measurement, "level", 10)
-        self.__state_publisher = self.create_publisher(State, "state", 10)
+        self.__state_publisher = self.create_publisher(LevelState, "state", 10)
         self.__control_service = self.create_service(
             SetEnabled, "set_enabled", self.__on_set_enable_callback)
         self.__timer = self.create_timer(
             self.__check_period, self.__on_timer_callback)
 
+        self.add_on_set_parameters_callback(self.__on_set_parameters_callback)
+
         self.get_logger().info("Level observer is running")
+
+    def __on_set_parameters_callback(self, params: list) -> SetParametersResult:
+        success = True
+        param: Parameter
+
+        # Check if all passed params are valid.
+        for param in params:
+            if param.type != Parameter.Type.DOUBLE:
+                success = False
+                break
+            if param.name not in ["min_level", "max_level"]:
+                success = False
+                break
+
+        if success:
+            for param in params:
+                if param.name == "min_level":
+                    self.__min_level = float(param.value)
+                elif param.name == "max_level":
+                    self.__max_level = float(param.value)
+
+        return SetParametersResult(successful=success)
 
     def __on_level_received_callback(self, msg: Measurement) -> None:
         self.__level_sensor_value = msg.val
@@ -162,24 +138,24 @@ class LevelObserver(Node):
             self.__level_sensor_value = -1
             self.get_logger().warn("Measurement invalidated due to too old value")
 
-        state_msg = State()
+        state_msg = LevelState()
 
         if not self.__enabled:
-            state_msg.state = State.MEASUREMENT_DISABLED
+            state_msg.state = LevelState.MEASUREMENT_DISABLED
         elif self.__closure_sensor.is_open():
-            state_msg.state = State.TANK_OPEN
+            state_msg.state = LevelState.TANK_OPEN
         elif self.__level_sensor_value < 0:
-            state_msg.state = State.UNKNOWN
+            state_msg.state = LevelState.UNKNOWN
         elif self.__level_sensor_value >= self.__max_level:
-            state_msg.state = State.LEVEL_CRITICAL_HIGH
+            state_msg.state = LevelState.LEVEL_CRITICAL_HIGH
         elif self.__level_sensor_value <= self.__min_level:
-            state_msg.state = State.LEVEL_CRITICAL_LOW
+            state_msg.state = LevelState.LEVEL_CRITICAL_LOW
         else:
-            state_msg.state = State.GOOD
+            state_msg.state = LevelState.GOOD
 
-        if state_msg.state != self.__previous_state or self.fst:
+        if state_msg.state != self.__previous_state or self.__fst:
 
-            if not self.fst:
+            if not self.__fst:
                 self.get_logger().info(
                     f"Tank's state changed from {self.__previous_state}"
                     f" ({state_str(self.__previous_state)}) to"
@@ -191,9 +167,9 @@ class LevelObserver(Node):
             self.__led.set_state(state_msg.state)
             self.__previous_state = state_msg.state
 
-            self.fst = False
+            self.__fst = False
 
-        if state_msg.state in [State.LEVEL_CRITICAL_HIGH, State.LEVEL_CRITICAL_LOW, State.GOOD]:
+        if state_msg.state in [LevelState.LEVEL_CRITICAL_HIGH, LevelState.LEVEL_CRITICAL_LOW, LevelState.GOOD]:
             level_msg = Measurement()
             level_msg.header.stamp = self.get_clock().now().to_msg()
             level_msg.header.frame_id = self.__frame
@@ -202,7 +178,6 @@ class LevelObserver(Node):
 
 
 def main(args=None):
-    # GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BCM)
 
     rclpy.init(args=args)

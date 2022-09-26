@@ -25,7 +25,7 @@ setup(
             'level_observer = tank_control.level_observer:main',
             'uc_bridge = tank_control.uc_bridge:main',
             'pump_driver = tank_control.pump_driver:main',
-            'nutri_quality_observer = tank_control.nutri_quality_observer:main'
+            'quality_observer = tank_control.quality_observer:main'
         ],
     },
 )

@@ -52,7 +52,7 @@ def generate_launch_description() -> LaunchDescription:
         package=pkg_name,
         namespace=water_tank_ns,
         executable="pump_driver",
-        name="water_pump_driver",
+        name="pump_driver",
         parameters=[config]
     )
     ld.add_action(water_pump_driver)
@@ -61,9 +61,18 @@ def generate_launch_description() -> LaunchDescription:
         package=pkg_name,
         namespace=nutri_tank_ns,
         executable="pump_driver",
-        name="nutri_pump_driver",
+        name="pump_driver",
         parameters=[config]
     )
     ld.add_action(nutri_pump_driver)
+
+    nutri_quality_observer = Node(
+        package=pkg_name,
+        namespace=nutri_tank_ns,
+        executable="quality_observer",
+        name="quality_observer",
+        parameters=[config]
+    )
+    ld.add_action(nutri_quality_observer)
 
     return ld
