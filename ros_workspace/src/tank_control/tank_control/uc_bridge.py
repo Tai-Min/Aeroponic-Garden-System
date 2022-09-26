@@ -29,7 +29,7 @@ class Bridge(Node):
             f"Nutri tank frame is: {self.__nutri_tank_frame}")
 
         self.__processors = [self.__process_level_sensor,
-                             self.__process_ec_sensor, self.__process_ph_sensor]
+                             self.__process_tds_sensor, self.__process_ph_sensor]
         self.__max_recv_errors = self.get_parameter(
             "max_recv_errors").get_parameter_value().integer_value
         self.get_logger().info(
@@ -43,9 +43,9 @@ class Bridge(Node):
         self.__msg_publishers["u1"] = self.create_publisher(
             Measurement, "nutri_tank/level_raw", 10)
         self.__msg_publishers["ph"] = self.create_publisher(
-            Measurement, "nutri_tank/ph", 10)
-        self.__msg_publishers["ec"] = self.create_publisher(
-            Measurement, "nutri_tank/ec", 10)
+            Measurement, "nutri_tank/ph_raw", 10)
+        self.__msg_publishers["tds"] = self.create_publisher(
+            Measurement, "nutri_tank/tds_raw", 10)
 
         self.__timer = self.create_timer(0, self.__on_timer_callback)
 
@@ -54,8 +54,11 @@ class Bridge(Node):
         Process serial readings from attached sensor
         and publish them.
         """
-        payload = self.__serial.readline().decode("utf-8")
-        payload = payload.replace("\n", "")
+        try:
+            payload = self.__serial.readline().decode("utf-8")
+            payload = payload.replace("\n", "")
+        except:
+            return
 
         if not payload:
             return
@@ -87,7 +90,7 @@ class Bridge(Node):
         Returns true on succesful payload parse, even when
         payload checksum is invalid.
         """
-        pattern = "^u[0-1]:[0-9]{1,5}\*[0-9]{1,3}$"
+        pattern = "^u[0-1]:-?[0-9]{1,5}\*[0-9]{1,3}$"
 
         if not re.search(pattern, payload):
             return False
@@ -122,7 +125,7 @@ class Bridge(Node):
         Returns true on succesful payload parse, even when
         payload checksum is invalid.
         """
-        pattern = "^ph:[0-9]{1,5}\*[0-9]{1,3}$"
+        pattern = "^ph:-?[0-9]{1,5}\*[0-9]{1,3}$"
 
         if not re.search(pattern, payload):
             return False
@@ -136,9 +139,10 @@ class Bridge(Node):
                 f"Checksum of pH payload does not match (received: {checksum}, computed: {computed_checksum})")
             return True
 
-        value = float(value) / 1000.0 # To pH.
+        value = float(value) / 1000.0  # To pH.
 
-        self.get_logger().info(f"Processed pH payload (value: {value}pH)", throttle_duration_sec=10)
+        self.get_logger().info(
+            f"Processed pH payload (value: {value}pH)", throttle_duration_sec=10)
 
         msg = Measurement()
         msg.header.frame_id = self.__nutri_tank_frame
@@ -148,35 +152,36 @@ class Bridge(Node):
 
         return True
 
-    def __process_ec_sensor(self, payload: str) -> bool:
+    def __process_tds_sensor(self, payload: str) -> bool:
         """
-        Try to process EC sensor payload and publish it.
+        Try to process TDS sensor payload and publish it.
         Returns false if given payload does not match
         sensor's payload pattern.
         Returns true on succesful payload parse, even when
         payload checksum is invalid.
         """
-        pattern = "^ec:[0-9]{1,5}\*[0-9]{1,3}$"
+        pattern = "^tds:-?[0-9]{1,5}\*[0-9]{1,3}$"
 
         if not re.search(pattern, payload):
             return False
 
-        payload = payload[3:]
+        payload = payload[4:]
         value, checksum = payload.split("*")
 
         computed_checksum = self.__compute_checksum(value)
         if computed_checksum != int(checksum):
             self.get_logger().warn(
-                f"Checksum of EC payload does not match (received: {checksum}, computed: {computed_checksum})")
+                f"Checksum of TDS payload does not match (received: {checksum}, computed: {computed_checksum})")
             return True
 
-        self.get_logger().info(f"Processed EC payload (value: {value}ppm)", throttle_duration_sec=10)
+        self.get_logger().info(
+            f"Processed TDS payload (value: {value}ppm)", throttle_duration_sec=10)
 
         msg = Measurement()
         msg.header.frame_id = self.__nutri_tank_frame
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.val = float(value)
-        self.__msg_publishers["ec"].publish(msg)
+        self.__msg_publishers["tds"].publish(msg)
 
         return True
 
@@ -188,7 +193,7 @@ class Bridge(Node):
         """
         checksum = 0
         for c in val:
-            checksum ^= (int(c) + 48)
+            checksum ^= ord(c)
         return checksum
 
 
