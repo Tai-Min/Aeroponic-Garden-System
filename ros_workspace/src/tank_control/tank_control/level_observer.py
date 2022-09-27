@@ -5,7 +5,8 @@ from rclpy.node import Node, SetParametersResult, Parameter
 from tank_msgs.msg import LevelState, Measurement
 from tank_msgs.srv import SetEnabled
 import RPi.GPIO as GPIO
-from .submodules.common import level_state_str, LevelLED, Button, ClosureSensor
+from .submodules.state_to_string import level_state_str
+from .submodules.hardware import LevelLED, Button, ClosureSensor
 
 
 class LevelObserver(Node):

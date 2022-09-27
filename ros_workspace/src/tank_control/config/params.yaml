@@ -9,16 +9,15 @@ temperature_observer:
   ros__parameters:
     
     water_tank_frame: water_tank
-    water_tank_sensor_addr: 0
+    water_tank_sensor_addr: ""
     min_water_temp: 0.0
     max_water_temp: 0.0
 
     nutri_tank_frame: nutri_tank
-    nutri_tank_sensor_addr: 0
+    nutri_tank_sensor_addr: "28-0416b07a36ff"
     min_nutri_temp: 0.0
     max_nutri_temp: 0.0
 
-    wire_pin: 1
     max_recv_errors: 10
 
 /water_tank:

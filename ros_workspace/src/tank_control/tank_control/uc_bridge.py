@@ -73,15 +73,14 @@ class Bridge(Node):
                 self.__err_cntr = 0
                 return
 
+        self.__err_cntr += 1
         self.get_logger().warn(
             f"{payload} does not match any known sensor pattern,"
-            f" increasing error counter to {self.__err_cntr + 1} / {self.__max_recv_errors}")
-
-        self.__err_cntr += 1
+            f" increasing error counter to {self.__err_cntr} / {self.__max_recv_errors}")
+        
         if self.__err_cntr >= self.__max_recv_errors:
             self.get_logger().error(
-                "Too many consecutive invalid payloads, stopping node"
-            )
+                "Too many consecutive invalid payloads, stopping node")
             self.destroy_node()
 
     def __process_level_sensor(self, payload: str) -> bool:

@@ -2,7 +2,8 @@ import time
 import rclpy
 from rclpy.node import Node, SetParametersResult, Parameter, Publisher
 from tank_msgs.msg import Measurement, TemperatureState
-from .submodules.common import temperature_state_str
+from .submodules.state_to_string import temperature_state_str
+from .submodules.hardware import read_ds18b20
 
 
 class TemperatureObserver(Node):
@@ -10,16 +11,15 @@ class TemperatureObserver(Node):
         super().__init__("temperature observer")
 
         self.declare_parameter("water_tank_frame", "water_tank")
-        self.declare_parameter("water_tank_sensor_addr", 0)
+        self.declare_parameter("water_tank_sensor_addr", "")
         self.declare_parameter("min_water_temp", 0.0)
         self.declare_parameter("max_water_temp", 0.0)
 
         self.declare_parameter("nutri_tank_frame", "nutri_tank")
-        self.declare_parameter("nutri_tank_sensor_addr", 0)
+        self.declare_parameter("nutri_tank_sensor_addr", "")
         self.declare_parameter("min_nutri_temp", 0.0)
         self.declare_parameter("max_nutri_temp", 0.0)
 
-        self.declare_parameter("wire_pin", 1)
         self.declare_parameter("max_recv_errors", 10)
 
         self.__min_water_temp = self.get_parameter(
@@ -48,10 +48,15 @@ class TemperatureObserver(Node):
         self.get_logger().info(
             f"Nutri tank frame is: {self.__nutri_tank_frame}")
 
-        pin = self.get_parameter(
-            "wire_pin").get_parameter_value().integer_value
-        #self.__serial = serial.Serial(port, timeout=1)
-        self.get_logger().info(f"1-Wire pin is: {pin}")
+        self.__water_sensor_addr = self.__max_nutri_temp = self.get_parameter(
+            "water_tank_sensor_addr").get_parameter_value().string_value
+        self.get_logger().info(
+            f"Water tank sensor address is: {self.__water_sensor_addr}")
+        self.__nutri_sensor_addr = self.__max_nutri_temp = self.get_parameter(
+            "nutri_tank_sensor_addr").get_parameter_value().string_value
+        self.get_logger().info(
+            f"Nutri tank sensor address is: {self.__nutri_sensor_addr}")
+
         self.__max_recv_errors = self.get_parameter(
             "max_recv_errors").get_parameter_value().integer_value
         self.get_logger().info(
@@ -61,6 +66,8 @@ class TemperatureObserver(Node):
         self.__fst_nutri = True
         self.__water_previous_state = TemperatureState.UNKNOWN
         self.__nutri_previous_state = TemperatureState.UNKNOWN
+        self.__water_err_cntr = 0
+        self.__nutri_err_cntr = 0
 
         self.__water_temp_publisher = self.create_publisher(
             Measurement, f"{self.__water_tank_frame}/liquid_temp", 10)
@@ -105,10 +112,8 @@ class TemperatureObserver(Node):
 
     def __measure_and_publish(self, fst: bool, sensor_addr: int, previous_state: TemperatureState,
                               min_temp: float, max_temp: float, frame: str,
-                              state_publisher: Publisher, temp_publisher: Publisher) -> tuple:
-        # TODO measure with retry then unknown
-        temp = 0.0
-        is_error = False
+                              state_publisher: Publisher, temp_publisher: Publisher, err_cntr: int) -> tuple:
+        temp, is_error = read_ds18b20(sensor_addr)
 
         state_msg = TemperatureState()
 
@@ -142,18 +147,31 @@ class TemperatureObserver(Node):
             temp_msg.val = float(temp)
             temp_publisher.publish(temp_msg)
 
-        return (fst, previous_state)
+        if is_error:
+            err_cntr += 1
+            self.get_logger().warn(
+                f"Read error while reading DS18B20 sensor {sensor_addr}"
+                f" increasing error counter of this sensor to {err_cntr} / {self.__max_recv_errors}")
+
+            if err_cntr == self.__max_recv_errors:
+                self.get_logger().error(
+                    "Too many consecutive read errors, stopping node")
+                self.destroy_node()
+        else:
+            err_cntr = 0
+
+        return (fst, previous_state, err_cntr)
 
     def __on_timer_callback(self) -> None:
-        self.__fst_water, self.__water_previous_state = self.__measure_and_publish(
-            self.__fst_water, 0, self.__water_previous_state, self.__min_water_temp,
-            self.__max_water_temp, self.__water_tank_frame, self.__water_state_publisher,
-            self.__water_temp_publisher)
+        self.__fst_water, self.__water_previous_state, self.__water_err_cntr = self.__measure_and_publish(
+            self.__fst_water, self.__water_sensor_addr, self.__water_previous_state,
+            self.__min_water_temp, self.__max_water_temp, self.__water_tank_frame,
+            self.__water_state_publisher, self.__water_temp_publisher, self.__water_err_cntr)
 
-        self.__fst_nutri, self.__nutri_previous_state = self.__measure_and_publish(
-            self.__fst_nutri, 0, self.__nutri_previous_state, self.__min_nutri_temp,
-            self.__max_nutri_temp, self.__nutri_tank_frame, self.__nutri_state_publisher,
-            self.__nutri_temp_publisher)
+        self.__fst_nutri, self.__nutri_previous_state, self.__nutri_err_cntr = self.__measure_and_publish(
+            self.__fst_nutri, self.__nutri_sensor_addr, self.__nutri_previous_state,
+            self.__min_nutri_temp, self.__max_nutri_temp, self.__nutri_tank_frame,
+            self.__nutri_state_publisher, self.__nutri_temp_publisher, self.__nutri_err_cntr)
 
 
 def main(args=None):

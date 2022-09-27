@@ -3,7 +3,8 @@ import rclpy
 from rclpy.node import Node, SetParametersResult, Parameter
 from tank_msgs.msg import QualityState, Measurement
 import RPi.GPIO as GPIO
-from .submodules.common import quality_state_str, QualityLED
+from .submodules.state_to_string import quality_state_str
+from .submodules.hardware import QualityLED
 
 
 class QualityObserver(Node):

@@ -7,7 +7,7 @@ from rclpy.action.server import ServerGoalHandle
 from tank_msgs.action import DrivePump
 from tank_msgs.msg import LevelState
 import RPi.GPIO as GPIO
-from .submodules.common import state_str
+from .submodules.state_to_string import level_state_str
 
 
 class PumpDriver(Node):
@@ -56,7 +56,7 @@ class PumpDriver(Node):
                     result.res = False
                     self.get_logger().info(
                         "Stopped driving the pump due to invalid state of the tank "
-                        f"(required either GOOD or LEVEL_CRITICAL_HIGH, received {state_str(self.__tank_state)})")
+                        f"(required either GOOD or LEVEL_CRITICAL_HIGH, received {level_state_str(self.__tank_state)})")
                     return result
 
             feedback_msg.fulfillment = int(i / handle.request.seconds * 100)
