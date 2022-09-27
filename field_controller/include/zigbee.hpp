@@ -1,16 +1,11 @@
 #pragma once
-#include "types/zigbee_types.hpp"
-
 #define _Static_assert static_assert
-
 extern "C"
 {
 #include <zboss_api.h>
 #include <zboss_api_addons.h>
-#include <zigbee/zigbee_zcl_scenes.h>
 }
-
-extern "C" void zboss_signal_handler(zb_bufid_t bufid);
+#include "types/zigbee_types.hpp"
 
 namespace app
 {
