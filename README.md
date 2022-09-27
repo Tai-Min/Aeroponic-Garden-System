@@ -12,7 +12,7 @@
 
 ## Global controller setup
 * Setup Ubuntu Server 20.04 (i.e via [Raspberry Pi Imager](https://www.raspberrypi.com/software/))
-* TODO: PERMISSIONS GPIO SERIAL DISABLE CONSOLE TTY
+
 ### Enable UART
 * Disable serial console
 ```
@@ -41,6 +41,12 @@ console=serial0,115200
 ```
 dtoverlay=disable-bt
 ```
+### Enable 1-Wire
+* Add below to /boot/firmware/config.txt
+```
+dtoverlay=w1-gpio,gpiopin=4
+```
+
 ### ROS2
 * Install [ROS2 Foxy Base version](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html)
 * Clone this repo to your home directory (/home/$USER/TODO)
