@@ -11,31 +11,87 @@ namespace app
             ZigbeeInterface ZigbeeInterface::m_instance = ZigbeeInterface();
             Callback ZigbeeInterface::m_callbacks[CallbackType::length()] = {nullptr};
 
+            void ZigbeeInterface::startIdentify(zb_bufid_t bufid)
+            {
+                if (ZB_JOINED())
+                {
+                    // If is in identifying mode.
+                    if (m_devCtx.identify.identify_time == ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE)
+                    {
+                        zb_ret_t err = zb_bdb_finding_binding_target(ZB_FAN_ENDPOINT);
+
+                        if (err == RET_OK)
+                        {
+                            LOG_INF("Enter identify mode");
+                        }
+                        else if (err == RET_INVALID_STATE)
+                        {
+                            LOG_WRN("RET_INVALID_STATE - Cannot enter identify mode");
+                        }
+                        else
+                        {
+                            ZB_ERROR_CHECK(err);
+                        }
+                    }
+                    else
+                    {
+                        LOG_INF("Cancel identify mode");
+                        zb_bdb_finding_binding_target_cancel();
+                    }
+                }
+                else
+                {
+                    LOG_WRN("Device not in a network - cannot enter identify mode");
+                }
+            }
+
             void ZigbeeInterface::btnCallback(uint32_t button_state, uint32_t has_changed)
             {
+                if (IDENTIFY_MODE_BUTTON & has_changed)
+                {
+                    if (!(IDENTIFY_MODE_BUTTON & button_state))
+                    {
+                        if (was_factory_reset_done())
+                        {
+                            LOG_DBG("Factory reset done");
+                        }
+                        else
+                        {
+                            ZB_SCHEDULE_APP_CALLBACK(ZigbeeInterface::startIdentify, 0);
+                        }
+                    }
+                }
+                check_factory_reset_button(button_state, has_changed);
             }
 
             void ZigbeeInterface::zclDeviceCallback(zb_bufid_t bufid)
             {
+                zb_uint8_t cluster_id;
+                zb_uint8_t attr_id;
+                zb_zcl_device_callback_param_t *device_cb_param =
+                    ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
+
+                LOG_INF("%s id %hd", __func__, device_cb_param->device_cb_id);
             }
 
-            void ZigbeeInterface::toggleIdentifyDiode(zb_bufid_t bufid)
+            void ZigbeeInterface::toggleIdentify(zb_bufid_t bufid)
             {
-                // static int blink = 0;
-                //  TODO: toggle identify led
-                ZB_SCHEDULE_APP_ALARM(toggleIdentifyDiode, bufid, ZB_MILLISECONDS_TO_BEACON_INTERVAL(500));
+                static bool blink = false;
+                identifyLed.setState(blink);
+                blink = !blink;
+                ZB_SCHEDULE_APP_ALARM(toggleIdentify, bufid, ZB_MILLISECONDS_TO_BEACON_INTERVAL(500));
             }
 
             void ZigbeeInterface::identifyCallback(zb_bufid_t bufid)
             {
                 if (bufid)
                 {
-                    ZB_SCHEDULE_APP_CALLBACK(toggleIdentifyDiode, bufid);
+                    ZB_SCHEDULE_APP_CALLBACK(toggleIdentify, bufid);
                 }
                 else
                 {
-                    ZB_SCHEDULE_APP_ALARM_CANCEL(toggleIdentifyDiode, ZB_ALARM_ANY_PARAM);
-                    // TODO: off identify led.
+                    ZB_SCHEDULE_APP_ALARM_CANCEL(toggleIdentify, ZB_ALARM_ANY_PARAM);
+                    identifyLed.setState(false);
                 }
             }
 
@@ -68,6 +124,63 @@ namespace app
                 m_devCtx.basic.ph_env = BASIC_ENV;
 
                 m_devCtx.identify.identify_time = ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE;
+
+                m_devCtx.fanAttr.on_off = static_cast<zb_bool_t>(ZB_ZCL_ON_OFF_IS_OFF);
+
+                m_devCtx.led1Attr.current_level = ZB_ZCL_LEVEL_CONTROL_LEVEL_MAX_VALUE;
+                m_devCtx.led1Attr.remaining_time = ZB_ZCL_LEVEL_CONTROL_REMAINING_TIME_DEFAULT_VALUE;
+
+                m_devCtx.ledStrategyAttr.on_off = static_cast<zb_bool_t>(ZB_ZCL_ON_OFF_IS_OFF);
+                m_devCtx.waterAttr.on_off = static_cast<zb_bool_t>(ZB_ZCL_ON_OFF_IS_OFF);
+                m_devCtx.nutriAttr.on_off = static_cast<zb_bool_t>(ZB_ZCL_ON_OFF_IS_OFF);
+
+                ZB_ZCL_SET_ATTRIBUTE(
+                    ZB_FAN_ENDPOINT,
+                    ZB_ZCL_CLUSTER_ID_ON_OFF,
+                    ZB_ZCL_CLUSTER_SERVER_ROLE,
+                    ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+                    static_cast<zb_uint8_t *>(&m_devCtx.fanAttr.on_off),
+                    ZB_FALSE);
+
+                ZB_ZCL_SET_ATTRIBUTE(
+                    ZB_LED1_ENDPOINT,
+                    ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
+                    ZB_ZCL_CLUSTER_SERVER_ROLE,
+                    ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
+                    static_cast<zb_uint8_t *>(&m_devCtx.led1Attr.current_level),
+                    ZB_FALSE);
+
+                ZB_ZCL_SET_ATTRIBUTE(
+                    ZB_LED2_ENDPOINT,
+                    ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
+                    ZB_ZCL_CLUSTER_SERVER_ROLE,
+                    ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
+                    static_cast<zb_uint8_t *>(&m_devCtx.led2Attr.current_level),
+                    ZB_FALSE);
+
+                ZB_ZCL_SET_ATTRIBUTE(
+                    ZB_STRATEGY_ENDPOINT,
+                    ZB_ZCL_CLUSTER_ID_ON_OFF,
+                    ZB_ZCL_CLUSTER_SERVER_ROLE,
+                    ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+                    static_cast<zb_uint8_t *>(&m_devCtx.ledStrategyAttr.on_off),
+                    ZB_FALSE);
+
+                ZB_ZCL_SET_ATTRIBUTE(
+                    ZB_WATER_ENDPOINT,
+                    ZB_ZCL_CLUSTER_ID_ON_OFF,
+                    ZB_ZCL_CLUSTER_SERVER_ROLE,
+                    ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+                    static_cast<zb_uint8_t *>(&m_devCtx.waterAttr.on_off),
+                    ZB_FALSE);
+
+                ZB_ZCL_SET_ATTRIBUTE(
+                    ZB_NUTRI_ENDPOINT,
+                    ZB_ZCL_CLUSTER_ID_ON_OFF,
+                    ZB_ZCL_CLUSTER_SERVER_ROLE,
+                    ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+                    static_cast<zb_uint8_t *>(&m_devCtx.nutriAttr.on_off),
+                    ZB_FALSE);
             }
 
             bool ZigbeeInterface::init() const

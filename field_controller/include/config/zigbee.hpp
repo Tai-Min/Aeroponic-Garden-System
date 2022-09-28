@@ -1,5 +1,4 @@
 #pragma once
-#define _Static_assert static_assert
 
 #define BASIC_APP_VER 1
 #define BASIC_ZB_STACK_VER 10
@@ -12,7 +11,7 @@
 #define BASIC_ENV ZB_ZCL_BASIC_ENV_UNSPECIFIED
 
 #define ZIGBEE_NETWORK_STATE_LED DK_LED2
-#define IDENTIFY_LED DK_LED3
+//#define IDENTIFY_LED DK_LED3
 #define IDENTIFY_MODE_BUTTON DK_BTN1_MSK
 #define FACTORY_RESET_BUTTON IDENTIFY_MODE_BUTTON
 

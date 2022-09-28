@@ -6,6 +6,7 @@ extern "C"
 #include <zboss_api_addons.h>
 }
 #include "types/zigbee_types.hpp"
+#include "gpio.hpp"
 
 namespace app
 {
@@ -36,12 +37,15 @@ namespace app
                 //!< Singleton pattern. There can be only one Zigbee interface on the device.
                 static ZigbeeInterface m_instance;
 
+                static app::io::digital::Output identifyLed;
+
                 //!< Callbacks to be called on msg rx.
                 static Callback m_callbacks[CallbackType::length()];
 
+                static void startIdentify(zb_bufid_t bufid);
                 static void btnCallback(uint32_t button_state, uint32_t has_changed);
                 static void zclDeviceCallback(zb_bufid_t bufid);
-                static void toggleIdentifyDiode(zb_bufid_t bufid);
+                static void toggleIdentify(zb_bufid_t bufid);
                 static void identifyCallback(zb_bufid_t bufid);
                 static void clusterAttrInit();
 

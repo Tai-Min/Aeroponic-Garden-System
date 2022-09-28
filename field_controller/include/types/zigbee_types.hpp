@@ -7,6 +7,7 @@ namespace app
     {
         namespace zigbee
         {
+            using IdentifyCallback = void (*)();
             using Callback = void (*)(uint16_t);
 
             struct CallbackType
