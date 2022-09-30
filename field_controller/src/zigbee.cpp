@@ -1,4 +1,10 @@
 #include "zigbee/zboss_api_hell_inputs.hpp"
+#include "config/hardware.hpp"
+
+namespace
+{
+    constexpr struct gpio_dt_spec led = GPIO_DT_SPEC_GET(ZIGBEE_IDENTIFY_LED_PIN, gpios);
+}
 
 namespace app
 {
@@ -7,9 +13,15 @@ namespace app
         namespace zigbee
         {
             bool ZigbeeInterface::m_isInit = false;
+            app::io::digital::Output ZigbeeInterface::m_identifyLed = app::io::digital::Output();
             ZigbeeInterface::DeviceContext ZigbeeInterface::m_devCtx;
             ZigbeeInterface ZigbeeInterface::m_instance = ZigbeeInterface();
             Callback ZigbeeInterface::m_callbacks[CallbackType::length()] = {nullptr};
+
+            void ZigbeeInterface::doFactoryReset(zb_bufid_t bufid)
+            {
+                LOG_INF("Factory reset done");
+            }
 
             void ZigbeeInterface::startIdentify(zb_bufid_t bufid)
             {
@@ -47,13 +59,13 @@ namespace app
 
             void ZigbeeInterface::btnCallback(uint32_t button_state, uint32_t has_changed)
             {
-                if (IDENTIFY_MODE_BUTTON & has_changed)
+                if (ZIGBEE_IDENTIFY_MODE_BUTTON & has_changed)
                 {
-                    if (!(IDENTIFY_MODE_BUTTON & button_state))
+                    if (!(ZIGBEE_IDENTIFY_MODE_BUTTON & button_state))
                     {
                         if (was_factory_reset_done())
                         {
-                            LOG_DBG("Factory reset done");
+                            ZB_SCHEDULE_APP_CALLBACK(ZigbeeInterface::doFactoryReset, 0);
                         }
                         else
                         {
@@ -77,7 +89,7 @@ namespace app
             void ZigbeeInterface::toggleIdentify(zb_bufid_t bufid)
             {
                 static bool blink = false;
-                identifyLed.setState(blink);
+                m_identifyLed.setState(blink);
                 blink = !blink;
                 ZB_SCHEDULE_APP_ALARM(toggleIdentify, bufid, ZB_MILLISECONDS_TO_BEACON_INTERVAL(500));
             }
@@ -91,7 +103,7 @@ namespace app
                 else
                 {
                     ZB_SCHEDULE_APP_ALARM_CANCEL(toggleIdentify, ZB_ALARM_ANY_PARAM);
-                    identifyLed.setState(false);
+                    m_identifyLed.setState(false);
                 }
             }
 
@@ -205,7 +217,14 @@ namespace app
                     return false;
                 }
 
-                register_factory_reset_button(FACTORY_RESET_BUTTON);
+                bool ok = m_identifyLed.init(led);
+                if (!ok)
+                {
+                    LOG_ERR("Identify LED init failed");
+                    return false;
+                }
+
+                register_factory_reset_button(ZIGBEE_FACTORY_RESET_BUTTON);
 
                 ZB_ZCL_REGISTER_DEVICE_CB(zclDeviceCallback);
                 ZB_AF_REGISTER_DEVICE_CTX(&ctrlCtx);
@@ -222,6 +241,9 @@ namespace app
                 zcl_scenes_init();
 
                 m_isInit = true;
+
+                m_identifyLed.setState(true);
+
                 LOG_INF("Initialized");
                 return true;
             }

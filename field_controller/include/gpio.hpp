@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <drivers/gpio.h>
 
 namespace app
 {
@@ -9,10 +10,13 @@ namespace app
         {
             class Output
             {
+            private:
+                gpio_dt_spec m_pin;
+                bool m_err = false;
             public:
-                bool init() { return true; }
-                void setState(bool state) {}
-                bool ok() { return true; }
+                bool init(const gpio_dt_spec &pin);
+                void setState(bool state);
+                bool ok() const;
             };
 
             class Input

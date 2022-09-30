@@ -1,1 +1,12 @@
-#define 
+#pragma once
+
+#define BLINK_PIN DT_ALIAS(led1) // Green LED
+
+#define WATER_PIN DT_ALIAS(driver_water)
+#define NUTRI_PIN DT_ALIAS(driver_nutri)
+#define FAN_PIN DT_ALIAS(driver_fan)
+
+#define ZIGBEE_IDENTIFY_MODE_BUTTON DK_BTN1_MSK
+#define ZIGBEE_FACTORY_RESET_BUTTON ZIGBEE_IDENTIFY_MODE_BUTTON
+#define ZIGBEE_NETWORK_STATE_LED DK_LED2
+#define ZIGBEE_IDENTIFY_LED_PIN DT_ALIAS(led2) // Blue LED

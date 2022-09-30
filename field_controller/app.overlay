@@ -1,0 +1,92 @@
+#include <zephyr/dt-bindings/ipc_service/static_vrings.h>
+
+/ {
+	/*soc {
+		nordic_ram_flash_controller: nordic_ram-flash-controller@0 {
+			compatible = "zephyr,sim-flash";
+			reg = <0x00000000 DT_SIZE_K(40)>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			erase-value = <0xff>;
+			label = "nordic_ram_flash_flash_controller";
+
+			flash_sim0: flash_sim@0 {
+				status = "okay";
+				compatible = "soc-nv-flash";
+				label = "simulated_flash";
+				erase-block-size = <4096>;
+				write-block-size = <4>;
+				reg = <0x00000000 DT_SIZE_K(256)>;
+
+				partitions {
+					compatible = "fixed-partitions";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					slot2_partition: partition@0 {
+						label = "image-2";
+						reg = <0x00000000 0x00000A000>;
+					};
+				};
+			};
+		};
+	};*/
+
+	chosen {
+		zephyr,console = &cdc_acm_uart0;
+		zephyr,shell-uart = &cdc_acm_uart0;
+		nordic,pm-ext-flash = &mx25r64;
+	};
+
+	pwmbuzzer {
+		compatible = "pwm-leds";
+		status = "okay";
+
+		buzzer: buzzer_pwm {
+			pwms = <&pwm1 0 PWM_HZ(100) PWM_POLARITY_NORMAL>;
+			label = "buzzer";
+		};
+	};
+
+	drivers {
+		compatible = "gpio-leds";
+		driver_water: driver1 {
+			gpios = <&gpio0 10 GPIO_ACTIVE_HIGH>;
+			label = "Water valve driver";
+		};
+		driver_nutri: driver2 {
+			gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
+			label = "Nutri valve driver";
+		};
+		driver_fan: driver3 {
+			gpios = <&gpio0 12 GPIO_ACTIVE_HIGH>;
+			label = "Fan driver";
+		};
+	};
+
+	aliases {
+		buzzer-pwm = &buzzer;
+		driver-water = &driver_water;
+		driver-nutri = &driver_nutri;
+		driver-fan = &driver_fan;
+	};
+};
+
+&ipc0 {
+    zephyr,priority = <0 PRIO_COOP>;
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+		label = "CDC_ACM_0";
+	};
+};
+
+&i2c1 {
+	bme688@76 {
+		compatible = "bosch,bme680";
+		label = "BME688";
+		reg = <0x76>;
+	};
+};

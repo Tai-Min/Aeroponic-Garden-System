@@ -11,6 +11,7 @@ extern "C"
 #include <zb_nrf_platform.h>
 }
 
+#include "config/hardware.hpp"
 #include "config/zigbee.hpp"
 
 LOG_MODULE_REGISTER(zigbee, LOG_LEVEL_DBG);
