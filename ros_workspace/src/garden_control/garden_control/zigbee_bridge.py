@@ -31,6 +31,7 @@ class ZigbeeBridge(Node):
 
     def __on_mqtt_connect(self, client, userdata, flags, rc) -> None:
         self.get_logger().info("Connected to MQTT broker")
+        self.__mqtt_client.subscribe(self.__namespace + "/#")
 
     def __is_valid_topic(self, topic: str) -> bool:
         pattern = "^%s\/0x[a-z0-9]{16}\/?.*$" % self.__namespace
@@ -65,11 +66,12 @@ class ZigbeeBridge(Node):
         self.get_logger().info(
             f"Received payload {msg.payload} from {device}, processing", throttle_duration_sec=10)
 
+        payload = msg.payload.decode("utf-8")
         try:
-            payload = ast.literal_eval(msg.payload)
+            payload = ast.literal_eval(payload)
         except:
-            self.get_logger(
-                f"Payload {msg.payload} of {device} couldn't be parsed")
+            self.get_logger().warn(
+                f"Payload {msg.payload} of {device} couldn't be parsed, skipping")
             return
 
         msg = State()
@@ -81,6 +83,8 @@ class ZigbeeBridge(Node):
             if msg.type != State.TYPE_UNKNOWN:
                 msg.value = float(payload[k])
                 self.__state_publisher.publish(msg)
+                self.get_logger().info(
+                    f"Publishing {k}: {msg.value} of {device}")
             else:
                 self.get_logger().warn(
                     f"Can't convert {k} to any known state enum, skipping", throttle_duration_sec=10)
@@ -124,7 +128,6 @@ class ZigbeeBridge(Node):
 
 
 def main(args=None):
-
     rclpy.init(args=args)
     bridge = ZigbeeBridge()
     rclpy.spin(bridge)
