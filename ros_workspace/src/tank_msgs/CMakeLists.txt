@@ -28,6 +28,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/QualityState.msg"
   "msg/TemperatureState.msg"
   "msg/Measurement.msg"
+  "msg/PumpState.msg"
   "srv/SetEnabled.srv"
   "action/DrivePump.action"
   DEPENDENCIES std_msgs

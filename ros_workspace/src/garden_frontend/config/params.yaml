@@ -1,0 +1,11 @@
+/frontend:
+  frontend_rt:
+    ros__parameters:
+      is_realtime: true
+      can_edit_config: true
+
+  frontend_db:
+    ros__parameters:
+      is_realtime: false
+      can_edit_config: false
+      publish_interval: 30
