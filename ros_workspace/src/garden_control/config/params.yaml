@@ -1,0 +1,4 @@
+/field:
+  zigbee_bridge:
+    ros__parameters:
+      namespace: field
