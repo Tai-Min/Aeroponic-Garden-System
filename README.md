@@ -80,6 +80,42 @@ serial:
 
 advanced:
     network_key: GENERATE
+
+external_converters:
+  - fc.js
+```
+
+Create file /opt/zigbee2mqtt/data/fc.js and paste following into it:
+```js
+const fz = require('zigbee-herdsman-converters/converters/fromZigbee');
+const tz = require('zigbee-herdsman-converters/converters/toZigbee');
+const exposes = require('zigbee-herdsman-converters/lib/exposes');
+const reporting = require('zigbee-herdsman-converters/lib/reporting');
+
+const definition = {
+    zigbeeModel: ['FC_v0.1'],
+    model: 'FC',
+    vendor: 'Nordic',
+    description: 'Field Controller',
+    fromZigbee: [fz.temperature, fz.humidity, fz.pressure, fz.on_off, fz.level_config],
+    toZigbee: [tz.on_off, tz.level_config],
+    exposes: [],
+    configure: async (device, coordinatorEndpoint, logger) => {
+        await reporting.bind(device.getEndpoint(16), coordinatorEndpoint, ['msTemperatureMeasurement']);
+        await reporting.temperature(device.getEndpoint(16), { min: 30, max: 30, change: 0 });
+
+        await reporting.bind(device.getEndpoint(16), coordinatorEndpoint, ['msPressureMeasurement']);
+        await reporting.pressure(device.getEndpoint(16), { min: 30, max: 30, change: 0 });
+
+        await reporting.bind(device.getEndpoint(16), coordinatorEndpoint, ['msRelativeHumidity']);
+        await reporting.humidity(device.getEndpoint(16), { min: 30, max: 30, change: 0 });
+    },
+    endpoint: (device) => {
+        return { fan: 10, led1: 11, led2: 12, strat: 13, water_valve: 14, nutri_valve: 15, sensors: 16 };
+    },
+};
+
+module.exports = definition;
 ```
 
 ### Finishing up

@@ -1,4 +1,4 @@
-#include "zigbee/zboss_api_hell_inputs.hpp"
+#include "zigbee/zboss_api_hell.hpp"
 #include "config/hardware.hpp"
 
 namespace
@@ -13,15 +13,11 @@ namespace app
         namespace zigbee
         {
             bool ZigbeeInterface::m_isInit = false;
-            app::io::digital::Output ZigbeeInterface::m_identifyLed = app::io::digital::Output();
-            ZigbeeInterface::DeviceContext ZigbeeInterface::m_devCtx;
+            app::io::digital::Output ZigbeeInterface::m_identifyLed = app::io::digital::Output("Identify LED");
+            DeviceContext ZigbeeInterface::m_devCtx;
             ZigbeeInterface ZigbeeInterface::m_instance = ZigbeeInterface();
             Callback ZigbeeInterface::m_callbacks[CallbackType::length()] = {nullptr};
-
-            void ZigbeeInterface::doFactoryReset(zb_bufid_t bufid)
-            {
-                LOG_INF("Factory reset done");
-            }
+            MeasurementCallback ZigbeeInterface::m_sensorCallback = nullptr;
 
             void ZigbeeInterface::startIdentify(zb_bufid_t bufid)
             {
@@ -30,11 +26,13 @@ namespace app
                     // If is in identifying mode.
                     if (m_devCtx.identify.identify_time == ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE)
                     {
+                        LOG_INF("Start identifying");
+
                         zb_ret_t err = zb_bdb_finding_binding_target(ZB_FAN_ENDPOINT);
 
                         if (err == RET_OK)
                         {
-                            LOG_INF("Enter identify mode");
+                            LOG_INF("Entering identify mode");
                         }
                         else if (err == RET_INVALID_STATE)
                         {
@@ -47,7 +45,7 @@ namespace app
                     }
                     else
                     {
-                        LOG_INF("Cancel identify mode");
+                        LOG_INF("Canceling identify mode");
                         zb_bdb_finding_binding_target_cancel();
                     }
                 }
@@ -65,15 +63,104 @@ namespace app
                     {
                         if (was_factory_reset_done())
                         {
-                            ZB_SCHEDULE_APP_CALLBACK(ZigbeeInterface::doFactoryReset, 0);
+                            LOG_INF("Factory reset done");
                         }
                         else
                         {
                             ZB_SCHEDULE_APP_CALLBACK(ZigbeeInterface::startIdentify, 0);
+
+                            user_input_indicate();
                         }
                     }
                 }
                 check_factory_reset_button(button_state, has_changed);
+            }
+
+            void ZigbeeInterface::sensorReadCallback(zb_bufid_t bufid)
+            {
+                LOG_DBG("Sensor read callback called");
+
+                if (m_sensorCallback == nullptr)
+                {
+                    LOG_WRN("Sensor read callback is null - skipping");
+                }
+                else
+                {
+                    SensorResult res = m_sensorCallback();
+
+                    if (res.ok)
+                    {
+                        setTemperature(res.temperature);
+                        setPressure(res.pressure);
+                        setHumidity(res.humidity);
+                    }
+                    else
+                    {
+                        LOG_WRN("Failed to perform sensor read");
+                    }
+                }
+
+                zb_ret_t zb_err = ZB_SCHEDULE_APP_ALARM(sensorReadCallback,
+                                                        0,
+                                                        ZB_MILLISECONDS_TO_BEACON_INTERVAL(
+                                                            ZB_SENSORS_CHECK_PERIOS_MS));
+                if (zb_err)
+                {
+                    LOG_ERR("Failed to schedule app alarm (error code: %d)", zb_err);
+                }
+            }
+
+            void ZigbeeInterface::setTemperature(int16_t temp)
+            {
+                LOG_INF("Setting temperature variable to %d", temp);
+
+                zb_zcl_status_t status = zb_zcl_set_attr_val(
+                    ZB_SENSORS_ENDPOINT,
+                    ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
+                    ZB_ZCL_CLUSTER_SERVER_ROLE,
+                    ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID,
+                    (zb_uint8_t *)&temp,
+                    ZB_FALSE);
+
+                if (status)
+                {
+                    LOG_ERR("Failed to set temperature ZCL attribute (error code: %d)", status);
+                }
+            }
+
+            void ZigbeeInterface::setPressure(int16_t press)
+            {
+                LOG_INF("Setting pressure variable to %d", press);
+
+                zb_zcl_status_t status = zb_zcl_set_attr_val(
+                    ZB_SENSORS_ENDPOINT,
+                    ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT,
+                    ZB_ZCL_CLUSTER_SERVER_ROLE,
+                    ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID,
+                    (zb_uint8_t *)&press,
+                    ZB_FALSE);
+
+                if (status)
+                {
+                    LOG_ERR("Failed to set pressure ZCL attribute (error code: %d)", status);
+                }
+            }
+
+            void ZigbeeInterface::setHumidity(int16_t hum)
+            {
+                LOG_INF("Setting humidity variable to %d", hum);
+
+                zb_zcl_status_t status = zb_zcl_set_attr_val(
+                    ZB_SENSORS_ENDPOINT,
+                    ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT,
+                    ZB_ZCL_CLUSTER_SERVER_ROLE,
+                    ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID,
+                    (zb_uint8_t *)&hum,
+                    ZB_FALSE);
+                if (status)
+                {
+                    LOG_ERR("Failed to set humidity ZCL attribute (error code: %d)", status);
+                }
             }
 
             void ZigbeeInterface::zclDeviceCallback(zb_bufid_t bufid)
@@ -146,6 +233,20 @@ namespace app
                 m_devCtx.waterAttr.on_off = static_cast<zb_bool_t>(ZB_ZCL_ON_OFF_IS_OFF);
                 m_devCtx.nutriAttr.on_off = static_cast<zb_bool_t>(ZB_ZCL_ON_OFF_IS_OFF);
 
+                m_devCtx.tempAttr.measure_value = ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_UNKNOWN;
+                m_devCtx.tempAttr.min_measure_value = SENSOR_TEMP_CELSIUS_MIN;
+                m_devCtx.tempAttr.max_measure_value = SENSOR_TEMP_CELSIUS_MAX;
+                m_devCtx.tempAttr.tolerance = SENSOR_TEMP_CELSIUS_TOLERANCE;
+
+                m_devCtx.pressAttr.measure_value = ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_UNKNOWN;
+                m_devCtx.pressAttr.min_measure_value = SENSOR_PRESSURE_KPA_MIN;
+                m_devCtx.pressAttr.max_measure_value = SENSOR_PRESSURE_KPA_MAX;
+                m_devCtx.pressAttr.tolerance = SENSOR_PRESSURE_KPA_TOLERANCE;
+
+                m_devCtx.humAttr.measure_value = ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_UNKNOWN;
+                m_devCtx.humAttr.min_measure_value = SENSOR_HUMIDITY_PERCENT_MIN;
+                m_devCtx.humAttr.max_measure_value = SENSOR_HUMIDITY_PERCENT_MAX;
+
                 ZB_ZCL_SET_ATTRIBUTE(
                     ZB_FAN_ENDPOINT,
                     ZB_ZCL_CLUSTER_ID_ON_OFF,
@@ -197,6 +298,8 @@ namespace app
 
             bool ZigbeeInterface::init() const
             {
+                LOG_INF("Zigbee initializing");
+
                 if (m_isInit)
                 {
                     LOG_WRN("Init called more than once, skipping");
@@ -237,12 +340,11 @@ namespace app
                 ZB_AF_SET_IDENTIFY_NOTIFICATION_HANDLER(ZB_STRATEGY_ENDPOINT, identifyCallback);
                 ZB_AF_SET_IDENTIFY_NOTIFICATION_HANDLER(ZB_WATER_ENDPOINT, identifyCallback);
                 ZB_AF_SET_IDENTIFY_NOTIFICATION_HANDLER(ZB_NUTRI_ENDPOINT, identifyCallback);
+                ZB_AF_SET_IDENTIFY_NOTIFICATION_HANDLER(ZB_SENSORS_ENDPOINT, identifyCallback);
 
                 zcl_scenes_init();
 
                 m_isInit = true;
-
-                m_identifyLed.setState(true);
 
                 LOG_INF("Initialized");
                 return true;

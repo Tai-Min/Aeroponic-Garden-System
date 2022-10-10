@@ -1,4 +1,5 @@
 #pragma once
+
 #include "zigbee.hpp"
 #include <dk_buttons_and_leds.h>
 #include <zigbee/zigbee_app_utils.h>
@@ -12,21 +13,19 @@ extern "C"
 }
 
 #include "config/hardware.hpp"
+#include "config/software.hpp"
 #include "config/zigbee.hpp"
 
-LOG_MODULE_REGISTER(zigbee, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(zigbee, ZIGBEE_LOG_LEVEL);
 
 namespace
 {
-    /**
-     * @brief Declare cluster list for on / off device
-     * @param cluster_list_name - cluster list variable name
-     * @param basic_attr_list - attribute list for Basic cluster
-     * @param identify_attr_list - attribute list for Identify cluster
-     * @param groups_attr_list - attribute list for Groups cluster
-     * @param scenes_attr_list - attribute list for Scenes cluster
-     * @param on_off_attr_list - attribute list for On/Off cluster
-     */
+#undef ZB_ZCL_START_PACKET_REQ
+#undef ZB_ZCL_CONSTRUCT_COMMAND_HEADER_REQ
+
+#define ZB_ZCL_START_PACKET_REQ(zbbuf)  static_cast<zb_uint8_t*>(zb_zcl_start_command_header((zbbuf),
+#define ZB_ZCL_CONSTRUCT_COMMAND_HEADER_REQ(data_ptr, tsn, cmd_id) (cmd_id), NULL))
+
 #define ZB_DECLARE_BOOL_CLUSTER_LIST(                                 \
     cluster_list_name,                                                \
     basic_attr_list,                                                  \
@@ -67,15 +66,6 @@ namespace
                 ZB_ZCL_CLUSTER_SERVER_ROLE,                           \
                 ZB_ZCL_MANUF_CODE_INVALID)}
 
-/**
- * @brief Declare cluster list for level control device
- * @param cluster_list_name - cluster list variable name
- * @param basic_attr_list - attribute list for Basic cluster
- * @param identify_attr_list - attribute list for Identify cluster
- * @param groups_attr_list - attribute list for Groups cluster
- * @param scenes_attr_list - attribute list for Scenes cluster
- * @param level_control_attr_list - attribute list for On/Off cluster
- */
 #define ZB_DECLARE_LEVEL_CLUSTER_LIST(                                     \
     cluster_list_name,                                                     \
     basic_attr_list,                                                       \
@@ -116,18 +106,61 @@ namespace
                 ZB_ZCL_CLUSTER_SERVER_ROLE,                                \
                 ZB_ZCL_MANUF_CODE_INVALID)}
 
+#define ZB_HA_DECLARE_WEATHER_STATION_CLUSTER_LIST(                                  \
+    cluster_list_name,                                                               \
+    basic_attr_list,                                                                 \
+    identify_client_attr_list,                                                       \
+    identify_server_attr_list,                                                       \
+    temperature_measurement_attr_list,                                               \
+    pressure_measurement_attr_list,                                                  \
+    humidity_measurement_attr_list)                                                  \
+    zb_zcl_cluster_desc_t cluster_list_name[] =                                      \
+        {                                                                            \
+            ZB_ZCL_CLUSTER_DESC(                                                     \
+                ZB_ZCL_CLUSTER_ID_BASIC,                                             \
+                ZB_ZCL_ARRAY_SIZE(basic_attr_list, zb_zcl_attr_t),                   \
+                (basic_attr_list),                                                   \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                          \
+                ZB_ZCL_MANUF_CODE_INVALID),                                          \
+            ZB_ZCL_CLUSTER_DESC(                                                     \
+                ZB_ZCL_CLUSTER_ID_IDENTIFY,                                          \
+                ZB_ZCL_ARRAY_SIZE(identify_server_attr_list, zb_zcl_attr_t),         \
+                (identify_server_attr_list),                                         \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                          \
+                ZB_ZCL_MANUF_CODE_INVALID),                                          \
+            ZB_ZCL_CLUSTER_DESC(                                                     \
+                ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,                                  \
+                ZB_ZCL_ARRAY_SIZE(temperature_measurement_attr_list, zb_zcl_attr_t), \
+                (temperature_measurement_attr_list),                                 \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                          \
+                ZB_ZCL_MANUF_CODE_INVALID),                                          \
+            ZB_ZCL_CLUSTER_DESC(                                                     \
+                ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT,                              \
+                ZB_ZCL_ARRAY_SIZE(pressure_measurement_attr_list, zb_zcl_attr_t),    \
+                (pressure_measurement_attr_list),                                    \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                          \
+                ZB_ZCL_MANUF_CODE_INVALID),                                          \
+            ZB_ZCL_CLUSTER_DESC(                                                     \
+                ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT,                          \
+                ZB_ZCL_ARRAY_SIZE(humidity_measurement_attr_list, zb_zcl_attr_t),    \
+                (humidity_measurement_attr_list),                                    \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                          \
+                ZB_ZCL_MANUF_CODE_INVALID),                                          \
+            ZB_ZCL_CLUSTER_DESC(                                                     \
+                ZB_ZCL_CLUSTER_ID_IDENTIFY,                                          \
+                ZB_ZCL_ARRAY_SIZE(identify_client_attr_list, zb_zcl_attr_t),         \
+                (identify_client_attr_list),                                         \
+                ZB_ZCL_CLUSTER_CLIENT_ROLE,                                          \
+                ZB_ZCL_MANUF_CODE_INVALID),                                          \
+    }
+
 #define ZB_DECLARE_SIMPLE_DESC_TYPE(in_clust_num, out_clust_num) \
     ZB_DECLARE_SIMPLE_DESC(in_clust_num, out_clust_num)
 
-    ZB_DECLARE_SIMPLE_DESC_TYPE(ZB_IN_CLUSTER_NUM, ZB_OUT_CLUSTER_NUM);
+    ZB_DECLARE_SIMPLE_DESC_TYPE(ZB_BOOL_IN_CLUSTER_NUM, ZB_BOOL_OUT_CLUSTER_NUM);
+    //ZB_DECLARE_SIMPLE_DESC_TYPE(ZB_CVC_IN_CLUSTER_NUM, ZB_CVC_OUT_CLUSTER_NUM);
+    ZB_DECLARE_SIMPLE_DESC_TYPE(ZB_SENSOR_IN_CLUSTER_NUM, ZB_SENSOR_OUT_CLUSTER_NUM);
 
-/**
- * @brief Declare simple descriptor for device
- * @param ep_name - endpoint variable name
- * @param ep_id - endpoint ID
- * @param in_clust_num - number of supported input clusters
- * @param out_clust_num - number of supported output clusters
- */
 #define ZB_ZCL_DECLARE_HA_SIMPLE_DESC(ep_name, ep_id, in_clust_num, out_clust_num) \
     ZB_AF_SIMPLE_DESC_TYPE(in_clust_num, out_clust_num)                            \
     simple_desc_##ep_name =                                                        \
@@ -146,19 +179,11 @@ namespace
                 ZB_ZCL_CLUSTER_ID_GROUPS,                                          \
             }}
 
-/**
- * @brief Declare endpoint for Dimmable Light device
- * @param ep_name - endpoint variable name
- * @param ep_id - endpoint ID
- * @param cluster_list - endpoint cluster list
- */
 #define ZB_DECLARE_BOOL_EP(ep_name, ep_id, cluster_list)                                              \
     ZB_ZCL_DECLARE_HA_SIMPLE_DESC(ep_name, ep_id,                                                     \
-                                  ZB_IN_CLUSTER_NUM, ZB_OUT_CLUSTER_NUM);                             \
+                                  ZB_BOOL_IN_CLUSTER_NUM, ZB_BOOL_OUT_CLUSTER_NUM);                   \
     ZBOSS_DEVICE_DECLARE_REPORTING_CTX(reporting_info##ep_name,                                       \
                                        1);                                                            \
-    ZBOSS_DEVICE_DECLARE_LEVEL_CONTROL_CTX(cvc_alarm_info##ep_name,                                   \
-                                           0);                                                        \
     ZB_AF_DECLARE_ENDPOINT_DESC(ep_name, ep_id, ZB_AF_HA_PROFILE_ID,                                  \
                                 0,                                                                    \
                                 NULL,                                                                 \
@@ -167,11 +192,11 @@ namespace
                                 1,                                                                    \
                                 reporting_info##ep_name,                                              \
                                 0,                                                                    \
-                                cvc_alarm_info##ep_name)
+                                NULL)
 
 #define ZB_DECLARE_CVC_EP(ep_name, ep_id, cluster_list)                                               \
     ZB_ZCL_DECLARE_HA_SIMPLE_DESC(ep_name, ep_id,                                                     \
-                                  ZB_IN_CLUSTER_NUM, ZB_OUT_CLUSTER_NUM);                             \
+                                  ZB_CVC_IN_CLUSTER_NUM, ZB_CVC_OUT_CLUSTER_NUM);                     \
     ZBOSS_DEVICE_DECLARE_REPORTING_CTX(reporting_info##ep_name,                                       \
                                        1);                                                            \
     ZBOSS_DEVICE_DECLARE_LEVEL_CONTROL_CTX(cvc_alarm_info##ep_name,                                   \
@@ -185,27 +210,55 @@ namespace
                                 reporting_info##ep_name,                                              \
                                 1,                                                                    \
                                 cvc_alarm_info##ep_name)
-/**
-  Declare application's device context for six-endpoint device
 
-  @note Device has an additional Green Power endpoint if it is ZC or ZR
-  and GPPB feature (Mandatory for Zigbee 3.0 ZC/ZR) is enabled.
+#define ZB_ZCL_DECLARE_WEATHER_STATION_DESC(                                    \
+    ep_name,                                                                    \
+    ep_id)                                                                      \
+    ZB_AF_SIMPLE_DESC_TYPE(ZB_SENSOR_IN_CLUSTER_NUM, ZB_SENSOR_OUT_CLUSTER_NUM) \
+    simple_desc_##ep_name =                                                     \
+        {                                                                       \
+            ep_id,                                                              \
+            ZB_AF_HA_PROFILE_ID,                                                \
+            ZB_HA_TEMPERATURE_SENSOR_DEVICE_ID,                                 \
+            0,                                                                  \
+            0,                                                                  \
+            ZB_SENSOR_IN_CLUSTER_NUM,                                           \
+            ZB_SENSOR_OUT_CLUSTER_NUM,                                          \
+            {                                                                   \
+                ZB_ZCL_CLUSTER_ID_BASIC,                                        \
+                ZB_ZCL_CLUSTER_ID_IDENTIFY,                                     \
+                ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,                             \
+                ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT,                         \
+                ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT,                     \
+                ZB_ZCL_CLUSTER_ID_IDENTIFY,                                     \
+            }}
 
-  @param device_ctx_name - device context variable name
-  @param ep1_name - variable holding context for endpoint 1
-  @param ep2_name - variable holding context for endpoint 2
-  @param ep3_name - variable holding context for endpoint 3
-  @param ep4_name - variable holding context for endpoint 4
-  @param ep5_name - variable holding context for endpoint 5
-  @param ep6_name - variable holding context for endpoint 6
-*/
-#define ZBOSS_DECLARE_DEVICE_CTX_6_EP(device_ctx_name,                   \
+#define ZB_HA_DECLARE_WEATHER_STATION_EP(ep_name, ep_id, cluster_list) \
+    ZB_ZCL_DECLARE_WEATHER_STATION_DESC(                               \
+        ep_name,                                                       \
+        ep_id);                                                        \
+    ZBOSS_DEVICE_DECLARE_REPORTING_CTX(                                \
+        reporting_info##ep_name,                                       \
+        ZB_SENSORS_ATTR_COUNT);                                        \
+    ZB_AF_DECLARE_ENDPOINT_DESC(                                       \
+        ep_name,                                                       \
+        ep_id,                                                         \
+        ZB_AF_HA_PROFILE_ID,                                           \
+        0,                                                             \
+        NULL,                                                          \
+        ZB_ZCL_ARRAY_SIZE(cluster_list, zb_zcl_cluster_desc_t),        \
+        cluster_list,                                                  \
+        (zb_af_simple_desc_1_1_t *)&simple_desc_##ep_name,             \
+        ZB_SENSORS_ATTR_COUNT, reporting_info##ep_name, 0, NULL)
+
+#define ZBOSS_DECLARE_DEVICE_CTX_7_EP(device_ctx_name,                   \
                                       ep1_name,                          \
                                       ep2_name,                          \
                                       ep3_name,                          \
                                       ep4_name,                          \
                                       ep5_name,                          \
-                                      ep6_name)                          \
+                                      ep6_name,                          \
+                                      ep7_name)                          \
     ZB_AF_START_DECLARE_ENDPOINT_LIST(ep_list_##device_ctx_name)         \
     &ep1_name,                                                           \
         &ep2_name,                                                       \
@@ -213,7 +266,8 @@ namespace
         &ep4_name,                                                       \
         &ep5_name,                                                       \
         &ep6_name,                                                       \
-        ZB_AF_FINISH_DECLARE_ENDPOINT_LIST;                              \
+        &ep7_name                                                        \
+            ZB_AF_FINISH_DECLARE_ENDPOINT_LIST;                          \
     ZBOSS_DECLARE_DEVICE_CTX(device_ctx_name, ep_list_##device_ctx_name, \
                              (ZB_ZCL_ARRAY_SIZE(ep_list_##device_ctx_name, zb_af_endpoint_desc_t *)))
 
@@ -361,22 +415,80 @@ namespace
         ZB_NUTRI_ENDPOINT,
         nutriClusters);
 
+    // Sensors.
+    ZB_ZCL_DECLARE_TEMP_MEASUREMENT_ATTRIB_LIST(
+        tempAttrList,
+        &iface.getContext().tempAttr.measure_value,
+        &iface.getContext().tempAttr.min_measure_value,
+        &iface.getContext().tempAttr.max_measure_value,
+        &iface.getContext().tempAttr.tolerance);
+
+    ZB_ZCL_DECLARE_PRESSURE_MEASUREMENT_ATTRIB_LIST(
+        pressAttrList,
+        &iface.getContext().pressAttr.measure_value,
+        &iface.getContext().pressAttr.min_measure_value,
+        &iface.getContext().pressAttr.max_measure_value,
+        &iface.getContext().pressAttr.tolerance);
+
+    ZB_ZCL_DECLARE_REL_HUMIDITY_MEASUREMENT_ATTRIB_LIST(
+        humAttrList,
+        &iface.getContext().humAttr.measure_value,
+        &iface.getContext().humAttr.min_measure_value,
+        &iface.getContext().humAttr.max_measure_value);
+
+    ZB_ZCL_DECLARE_IDENTIFY_CLIENT_ATTRIB_LIST(
+        identifyClientAttrList);
+
+    ZB_HA_DECLARE_WEATHER_STATION_CLUSTER_LIST(
+        sensorClusters,
+        basicAttrList,
+        identifyClientAttrList,
+        identifyAttrList,
+        tempAttrList,
+        pressAttrList,
+        humAttrList);
+
+    ZB_HA_DECLARE_WEATHER_STATION_EP(
+        sensorsEp,
+        ZB_SENSORS_ENDPOINT,
+        sensorClusters);
+
     // Endpoint declatarion.
-    ZBOSS_DECLARE_DEVICE_CTX_6_EP(
+    ZBOSS_DECLARE_DEVICE_CTX_7_EP(
         ctrlCtx,
         fanEp,
         led1Ep,
         led2Ep,
         ledStrategyEp,
         relayWaterEp,
-        relayNutriEp);
+        relayNutriEp,
+        sensorsEp);
 }
 
 extern "C"
 {
     void zboss_signal_handler(zb_bufid_t bufid)
     {
-        zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
+        zb_zdo_app_signal_hdr_t *signal_header = NULL;
+        zb_zdo_app_signal_type_t signal = zb_get_app_signal(bufid, &signal_header);
+        zb_ret_t err;
+
+        switch (signal)
+        {
+        case ZB_ZDO_SIGNAL_SKIP_STARTUP:
+            err = ZB_SCHEDULE_APP_ALARM(iface.sensorReadCallback,
+                                        0,
+                                        ZB_MILLISECONDS_TO_BEACON_INTERVAL(
+                                            ZB_SENSORS_CHECK_PERIOS_MS));
+            if (err)
+            {
+                LOG_ERR("Failed to schedule app alarm (error code: %d)", err);
+            }
+            break;
+
+        default:
+            break;
+        }
 
         ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
 

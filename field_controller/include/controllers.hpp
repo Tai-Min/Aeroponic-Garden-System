@@ -40,6 +40,10 @@ namespace app
                     update();
                 }
 
+                ControlStrategy getControlStrategy() {
+                    return m_currStrategy;
+                }
+
                 void setState(uint16_t state)
                 {
                     m_valZigbee = state;

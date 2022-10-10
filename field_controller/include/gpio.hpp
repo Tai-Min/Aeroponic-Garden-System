@@ -13,18 +13,14 @@ namespace app
             private:
                 gpio_dt_spec m_pin;
                 bool m_err = false;
+                const char *m_label;
+
             public:
+                Output(const char *label);
                 bool init(const gpio_dt_spec &pin);
                 void setState(bool state);
                 bool ok() const;
-            };
-
-            class Input
-            {
-            public:
-                bool init() { return true; }
-                bool getState() { return true; }
-                bool ok() { return true; }
+                const char *getLabel();
             };
         }
 
