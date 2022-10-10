@@ -8,6 +8,7 @@ def generate_launch_description() -> LaunchDescription:
     ld = LaunchDescription()
 
     pkg_name = "garden_frontend"
+    frontend_ns = "frontend"
 
     config = os.path.join(
         get_package_share_directory(pkg_name),
@@ -16,16 +17,18 @@ def generate_launch_description() -> LaunchDescription:
 
     frontend_rt = Node(
         package=pkg_name,
+        namespace=frontend_ns,
         executable="frontend",
-        name="frontend",
+        name="frontend_rt",
         parameters=[config]
     )
     ld.add_action(frontend_rt)
 
     frontend_db = Node(
         package=pkg_name,
+        namespace=frontend_ns,
         executable="frontend",
-        name="frontend",
+        name="frontend_db",
         parameters=[config]
     )
     ld.add_action(frontend_db)

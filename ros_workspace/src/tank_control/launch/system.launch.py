@@ -26,7 +26,6 @@ def generate_launch_description() -> LaunchDescription:
 
     temperature_observer = Node(
         package=pkg_name,
-        namespace=nutri_tank_ns,
         executable="temperature_observer",
         name="temperature_observer",
         parameters=[config]

@@ -7,7 +7,6 @@ uc_bridge:
 
 temperature_observer:
   ros__parameters:
-    
     water_tank_frame: water_tank
     water_tank_sensor_addr: ""
     min_water_temp: 0.0

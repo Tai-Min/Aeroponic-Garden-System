@@ -1,5 +1,4 @@
-import re
-import ast
+import json
 from typing import Any
 import paho.mqtt.client as mqtt
 import rclpy
@@ -16,15 +15,26 @@ class Frontend(Node):
         self.declare_parameter("is_realtime", False)
         self.declare_parameter("can_edit_config", False)
         self.declare_parameter("publish_interval", 30.0)
+        self.declare_parameter("broker_ip", "localhost")
 
         self.__overseer_id = self.get_parameter(
             "overseer_id").get_parameter_value().integer_value
+        self.get_logger().info(f"FO ID is: {self.__overseer_id}")
         self.__is_realtime = self.get_parameter(
             "is_realtime").get_parameter_value().bool_value
+        self.get_logger().info(f"Is frontend realtime: {self.__is_realtime}")
         self.__can_edit_config = self.get_parameter(
             "can_edit_config").get_parameter_value().bool_value
+        self.get_logger().info(
+            f"Can frontend edit FO's config: {self.__can_edit_config}")
         self.__publish_interval = self.get_parameter(
             "publish_interval").get_parameter_value().double_value
+        if not self.__is_realtime:
+            self.get_logger().info(
+                f"Non RT frontend's publish interval: {self.__publish_interval}")
+        broker_ip = self.get_parameter(
+            "broker_ip").get_parameter_value().string_value
+        self.get_logger().info(f"Broker IP is: {broker_ip}")
 
         self.__mqtt_topic_prefix = "FO/" + str(self.__overseer_id) + "/"
         self.__mqtt_config_topic = self.__mqtt_topic_prefix + "config/#"
@@ -143,7 +153,7 @@ class Frontend(Node):
         self.__mqtt_client = mqtt.Client()
         self.__mqtt_client.on_connect = self.__on_mqtt_connect
         self.__mqtt_client.on_message = self.__on_mqtt_msg
-        # self.__mqtt_client.connect("localhost")
+        self.__mqtt_client.connect(broker_ip)
         self.__mqtt_client.loop_start()
 
     def __del__(self) -> None:
@@ -157,7 +167,8 @@ class Frontend(Node):
                 self.__mqtt_config_topic)
 
     def __on_mqtt_msg(self, client, userdata, msg) -> None:
-        pass
+        self.get_logger().info(
+            f"Received payload {msg.payload} on topic {msg.topic}")
 
     def __get_measurement_dict(self, name: str, msg: Measurement, payload: dict = None) -> dict:
         if payload == None:
@@ -210,40 +221,40 @@ class Frontend(Node):
             elif type(msg_new) is QualityState:
                 payload = self.__get_quality_state_dict(name, msg_new)
             self.__mqtt_client.publish(
-                self.__mqtt_topic_prefix + "telemetry", payload)
+                self.__mqtt_telemetry_topic, json.dumps(payload))
 
     def __non_rt_cb(self) -> None:
         payload = {}
         payload = self.__get_measurement_dict(
-            "", self.__water_tank_level, payload)
+            self.__water_tank_level_topic, self.__water_tank_level, payload)
         payload = self.__get_level_state_dict(
-            "", self.__water_tank_state, payload)
+            self.__water_tank_state_topic, self.__water_tank_state, payload)
         payload = self.__get_measurement_dict(
-            "", self.__water_tank_liquid_temp, payload)
+            self.__water_tank_liquid_temp_topic, self.__water_tank_liquid_temp, payload)
         payload = self.__get_temperature_state_dict(
-            "", self.__water_tank_liquid_temp_state, payload)
+            self.__water_tank_liquid_temp_state_topic, self.__water_tank_liquid_temp_state, payload)
         payload = self.__get_pump_state_dict(
-            "", self.__water_tank_pump_state, payload)
+            self.__water_tank_pump_state_topic, self.__water_tank_pump_state, payload)
 
         payload = self.__get_measurement_dict(
-            "", self.__nutri_tank_level, payload)
+            self.__nutri_tank_level_topic, self.__nutri_tank_level, payload)
         payload = self.__get_level_state_dict(
-            "", self.__nutri_tank_state, payload)
+            self.__nutri_tank_state_topic, self.__nutri_tank_state, payload)
         payload = self.__get_measurement_dict(
-            "", self.__nutri_tank_liquid_temp, payload)
+            self.__nutri_tank_liquid_temp_topic, self.__nutri_tank_liquid_temp, payload)
         payload = self.__get_temperature_state_dict(
-            "", self.__nutri_tank_liquid_temp_state, payload)
+            self.__nutri_tank_liquid_temp_state_topic, self.__nutri_tank_liquid_temp_state, payload)
         payload = self.__get_pump_state_dict(
-            "", self.__nutri_tank_pump_state, payload)
+            self.__nutri_tank_pump_state_topic, self.__nutri_tank_pump_state, payload)
         payload = self.__get_measurement_dict(
-            "", self.__nutri_tank_tds, payload)
+            self.__nutri_tank_tds_topic, self.__nutri_tank_tds, payload)
         payload = self.__get_measurement_dict(
-            "", self.__nutri_tank_ph, payload)
+            self.__nutri_tank_ph_topic, self.__nutri_tank_ph, payload)
         payload = self.__get_quality_state_dict(
-            "", self.__nutri_tank_quality, payload)
+            self.__nutri_tank_quality_topic, self.__nutri_tank_quality, payload)
 
         self.__mqtt_client.publish(
-            self.__mqtt_topic_prefix + "telemetry", payload)
+            self.__mqtt_telemetry_topic, json.dumps(payload))
 
 
 def main(args=None):

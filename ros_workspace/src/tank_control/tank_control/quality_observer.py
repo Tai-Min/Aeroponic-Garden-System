@@ -14,9 +14,14 @@ class QualityObserver(Node):
         self.declare_parameter("frame_id", "tank")
         self.declare_parameter("min_ppm", 0.0)
         self.declare_parameter("max_ppm", 1000.0)
-        self.declare_parameter("min_ppm", 0.0)
-        self.declare_parameter("max_ppm", 14.0)
+        self.declare_parameter("ppm_value_invalidate_time", 5.0)
+
+        self.declare_parameter("min_ph", 0.0)
+        self.declare_parameter("max_ph", 14.0)
+        self.declare_parameter("ph_value_invalidate_time", 5.0)
+
         self.declare_parameter("led_pin", 22)
+        self.declare_parameter("check_period", 1.0)
 
         self.__frame = self.get_parameter(
             "frame_id").get_parameter_value().string_value

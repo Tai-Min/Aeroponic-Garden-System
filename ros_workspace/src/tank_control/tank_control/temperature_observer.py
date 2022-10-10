@@ -8,7 +8,7 @@ from .submodules.hardware import read_ds18b20
 
 class TemperatureObserver(Node):
     def __init__(self) -> None:
-        super().__init__("temperature observer")
+        super().__init__("temperature_observer")
 
         self.declare_parameter("water_tank_frame", "water_tank")
         self.declare_parameter("water_tank_sensor_addr", "")
