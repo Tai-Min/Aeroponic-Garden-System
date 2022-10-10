@@ -22,4 +22,12 @@ def generate_launch_description() -> LaunchDescription:
     )
     ld.add_action(frontend_rt)
 
+    frontend_db = Node(
+        package=pkg_name,
+        executable="frontend",
+        name="frontend",
+        parameters=[config]
+    )
+    ld.add_action(frontend_db)
+
     return ld

@@ -36,6 +36,7 @@ temperature_observer:
   pump_driver:
     ros__parameters:
       pump_pin: 3
+      frame_id: water_tank
 
 /nutri_tank:
   level_observer:
@@ -53,6 +54,7 @@ temperature_observer:
   pump_driver:
     ros__parameters:
       pump_pin: 25
+      frame_id: nutri_tank
 
   quality_observer:
     ros__parameters:

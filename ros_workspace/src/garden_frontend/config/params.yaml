@@ -1,11 +1,13 @@
 /frontend:
   frontend_rt:
     ros__parameters:
+      overseer_id: 1
       is_realtime: true
       can_edit_config: true
 
   frontend_db:
     ros__parameters:
+      overseer_id: 1
       is_realtime: false
       can_edit_config: false
       publish_interval: 30

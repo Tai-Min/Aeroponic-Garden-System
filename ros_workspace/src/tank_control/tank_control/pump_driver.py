@@ -5,7 +5,7 @@ from rclpy.node import Node
 from rclpy.action import ActionServer
 from rclpy.action.server import ServerGoalHandle
 from tank_msgs.action import DrivePump
-from tank_msgs.msg import LevelState
+from tank_msgs.msg import LevelState, PumpState
 import RPi.GPIO as GPIO
 from .submodules.state_to_string import level_state_str
 
@@ -17,18 +17,32 @@ class PumpDriver(Node):
         self.__var_lock = Lock()
         self.__tank_state = LevelState.UNKNOWN
 
+        self.declare_parameter("frame_id", "tank")
         self.declare_parameter("pump_pin", 3)
+
+        self.__frame = self.get_parameter(
+            "frame_id").get_parameter_value().string_value
+        self.get_logger().info(f"Frame ID is: {self.__frame}")
 
         self.__pump = self.get_parameter(
             "pump_pin").get_parameter_value().integer_value
         self.get_logger().info(f"Pump GPIO (BCM) is: {self.__pump}")
         GPIO.setup(self.__pump, GPIO.OUT)
+        GPIO.output(self.__pump, GPIO.LOW)
 
         self.__level_sensor_subscriber = self.create_subscription(
             LevelState, "state", self.__on_state_received_callback, 10)
         self.__server = ActionServer(
             self, DrivePump, "drive", self.__on_drive_callback
         )
+        self.__publisher = self.create_publisher(PumpState, "pump_state", 10)
+
+        msg = PumpState()
+        msg.header.frame_id = self.__frame
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.state = PumpState.STATE_OFF
+        self.__publisher.publish(msg)
+
         self.get_logger().info("Pump driver is running")
 
     def __del__(self) -> None:
@@ -47,11 +61,19 @@ class PumpDriver(Node):
         feedback_msg = DrivePump.Feedback()
 
         GPIO.output(self.__pump, GPIO.HIGH)
+        msg = PumpState()
+        msg.header.frame_id = self.__frame
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.state = PumpState.STATE_ON
+        self.__publisher.publish(msg)
 
         for i in range(handle.request.seconds):
             with self.__var_lock:
                 if self.__tank_state not in [LevelState.GOOD, LevelState.LEVEL_CRITICAL_HIGH]:
                     GPIO.output(self.__pump, GPIO.LOW)
+                    msg.header.stamp = self.get_clock().now().to_msg()
+                    msg.state = PumpState.STATE_OFF
+                    self.__publisher.publish(msg)
                     handle.succeed()
                     result.res = False
                     self.get_logger().info(
@@ -64,6 +86,9 @@ class PumpDriver(Node):
             time.sleep(1)
 
         GPIO.output(self.__pump, GPIO.LOW)
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.state = PumpState.STATE_OFF
+        self.__publisher.publish(msg)
 
         handle.succeed()
 
