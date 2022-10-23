@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cstdint>
 extern "C"
 {
@@ -30,9 +31,11 @@ namespace app
             struct SensorResult
             {
                 bool ok;
-                int16_t temperature;
-                int16_t pressure;
-                int16_t humidity;
+                float temperature;
+                float pressure;
+                float humidity;
+                float gasResistance;
+                uint8_t classification;
             };
 
             struct PressureAttr
@@ -44,6 +47,13 @@ namespace app
             };
 
             struct HumidityAttr
+            {
+                zb_int16_t measure_value;
+                zb_int16_t min_measure_value;
+                zb_int16_t max_measure_value;
+            };
+
+            struct GasResistanceAttr
             {
                 zb_int16_t measure_value;
                 zb_int16_t min_measure_value;
@@ -67,6 +77,8 @@ namespace app
                 zb_zcl_temp_measurement_attrs_t tempAttr;
                 PressureAttr pressAttr;
                 HumidityAttr humAttr;
+
+                zb_zcl_on_off_attrs_t classificationAttr;
             };
 
             using Callback = void (*)(uint16_t);

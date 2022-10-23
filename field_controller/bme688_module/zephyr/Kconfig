@@ -1,0 +1,113 @@
+# BME688 temperature, pressure, humidity and gas sensor configuration options
+
+# Copyright (c) 2018 Bosch Sensortec GmbH
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig BME688
+	bool "BME688 sensor"
+	depends on I2C
+	help
+	  Enable driver for BME688 I2C-based based temperature, pressure, humidity and gas sensor.
+
+if BME688
+
+choice
+	prompt "BME688 temperature oversampling"
+	default BME688_TEMP_OVER_2X
+	help
+	  Select temperature oversampling for the BME688 sensor.  Higher values
+	  lead to more accurate readings, but higher power consumption.
+config BME688_TEMP_OVER_1X
+	bool "x1"
+config BME688_TEMP_OVER_2X
+	bool "x2"
+config BME688_TEMP_OVER_4X
+	bool "x4"
+config BME688_TEMP_OVER_8X
+	bool "x8"
+config BME688_TEMP_OVER_16X
+	bool "x16"
+endchoice
+
+choice
+	prompt "BME688 pressure oversampling"
+	default BME688_PRESS_OVER_16X
+	help
+	  Select pressure oversampling for the BME688 sensor.  Higher values
+	  lead to more accurate readings, but higher power consumption.
+config BME688_PRESS_OVER_1X
+	bool "x1"
+config BME688_PRESS_OVER_2X
+	bool "x2"
+config BME688_PRESS_OVER_4X
+	bool "x4"
+config BME688_PRESS_OVER_8X
+	bool "x8"
+config BME688_PRESS_OVER_16X
+	bool "x16"
+endchoice
+
+choice
+	prompt "BME688 humidity oversampling"
+	default BME688_HUMIDITY_OVER_1X
+	help
+	  Select humidity oversampling for the BME688 sensor.  Higher values
+	  lead to more accurate readings, but higher power consumption.
+config BME688_HUMIDITY_OVER_1X
+	bool "x1"
+config BME688_HUMIDITY_OVER_2X
+	bool "x2"
+config BME688_HUMIDITY_OVER_4X
+	bool "x4"
+config BME688_HUMIDITY_OVER_8X
+	bool "x8"
+config BME688_HUMIDITY_OVER_16X
+	bool "x16"
+endchoice
+
+choice
+	prompt "BME688 IIR low-pass filter coefficient"
+	default BME688_FILTER_OFF
+	help
+	  Select the filter coefficient for the BME688 sensor.
+config BME688_FILTER_OFF
+	bool "filter off"
+config BME688_FILTER_2
+	bool "2"
+config BME688_FILTER_4
+	bool "4"
+config BME688_FILTER_8
+	bool "8"
+config BME688_FILTER_16
+	bool "16"
+config BME688_FILTER_32
+	bool "32"
+config BME688_FILTER_64
+	bool "64"
+config BME688_FILTER_128
+	bool "128"
+endchoice
+
+choice
+	prompt "BME688 gas sensor's heater temperature in degree Celsius"
+	default BME688_HEATR_TEMP_LP
+	help
+	  Select the gas sensor's heater temperature for the BME688 sensor.
+config BME688_HEATR_TEMP_LP
+	bool "320"
+config BME688_HEATR_TEMP_ULP
+	bool "400"
+endchoice
+
+choice
+	prompt "BME688 gas sensor's heating duration in milliseconds"
+	default BME688_HEATR_DUR_LP
+	help
+	  Select the gas sensor's heating duration for the BME688 sensor.
+config BME688_HEATR_DUR_LP
+	bool "197"
+config BME688_HEATR_DUR_ULP
+	bool "1943"
+endchoice
+
+endif # BME688

@@ -66,6 +66,53 @@ namespace
                 ZB_ZCL_CLUSTER_SERVER_ROLE,                           \
                 ZB_ZCL_MANUF_CODE_INVALID)}
 
+#define ZB_DECLARE_CLASSIFIER_CLUSTER_LIST(                                  \
+    cluster_list_name,                                                       \
+    basic_attr_list,                                                         \
+    identify_attr_list,                                                      \
+    identify_client_attr_list,                                               \
+    groups_attr_list,                                                        \
+    scenes_attr_list,                                                        \
+    on_off_attr_list)                                                        \
+    zb_zcl_cluster_desc_t cluster_list_name[] =                              \
+        {                                                                    \
+            ZB_ZCL_CLUSTER_DESC(                                             \
+                ZB_ZCL_CLUSTER_ID_IDENTIFY,                                  \
+                ZB_ZCL_ARRAY_SIZE(identify_attr_list, zb_zcl_attr_t),        \
+                (identify_attr_list),                                        \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                  \
+                ZB_ZCL_MANUF_CODE_INVALID),                                  \
+            ZB_ZCL_CLUSTER_DESC(                                             \
+                ZB_ZCL_CLUSTER_ID_BASIC,                                     \
+                ZB_ZCL_ARRAY_SIZE(basic_attr_list, zb_zcl_attr_t),           \
+                (basic_attr_list),                                           \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                  \
+                ZB_ZCL_MANUF_CODE_INVALID),                                  \
+            ZB_ZCL_CLUSTER_DESC(                                             \
+                ZB_ZCL_CLUSTER_ID_SCENES,                                    \
+                ZB_ZCL_ARRAY_SIZE(scenes_attr_list, zb_zcl_attr_t),          \
+                (scenes_attr_list),                                          \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                  \
+                ZB_ZCL_MANUF_CODE_INVALID),                                  \
+            ZB_ZCL_CLUSTER_DESC(                                             \
+                ZB_ZCL_CLUSTER_ID_GROUPS,                                    \
+                ZB_ZCL_ARRAY_SIZE(groups_attr_list, zb_zcl_attr_t),          \
+                (groups_attr_list),                                          \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                  \
+                ZB_ZCL_MANUF_CODE_INVALID),                                  \
+            ZB_ZCL_CLUSTER_DESC(                                             \
+                ZB_ZCL_CLUSTER_ID_ON_OFF,                                    \
+                ZB_ZCL_ARRAY_SIZE(on_off_attr_list, zb_zcl_attr_t),          \
+                (on_off_attr_list),                                          \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                  \
+                ZB_ZCL_MANUF_CODE_INVALID),                                  \
+            ZB_ZCL_CLUSTER_DESC(                                             \
+                ZB_ZCL_CLUSTER_ID_IDENTIFY,                                  \
+                ZB_ZCL_ARRAY_SIZE(identify_client_attr_list, zb_zcl_attr_t), \
+                (identify_client_attr_list),                                 \
+                ZB_ZCL_CLUSTER_CLIENT_ROLE,                                  \
+                ZB_ZCL_MANUF_CODE_INVALID)}
+
 #define ZB_DECLARE_LEVEL_CLUSTER_LIST(                                     \
     cluster_list_name,                                                     \
     basic_attr_list,                                                       \
@@ -154,11 +201,44 @@ namespace
                 ZB_ZCL_MANUF_CODE_INVALID),                                          \
     }
 
+#define ZB_DECLARE_LEVEL_CLUSTER_OUT_LIST(                                   \
+    cluster_list_name,                                                       \
+    basic_attr_list,                                                         \
+    identify_client_attr_list,                                               \
+    identify_server_attr_list,                                               \
+    level_attr_list)                                                         \
+    zb_zcl_cluster_desc_t cluster_list_name[] =                              \
+        {                                                                    \
+            ZB_ZCL_CLUSTER_DESC(                                             \
+                ZB_ZCL_CLUSTER_ID_BASIC,                                     \
+                ZB_ZCL_ARRAY_SIZE(basic_attr_list, zb_zcl_attr_t),           \
+                (basic_attr_list),                                           \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                  \
+                ZB_ZCL_MANUF_CODE_INVALID),                                  \
+            ZB_ZCL_CLUSTER_DESC(                                             \
+                ZB_ZCL_CLUSTER_ID_IDENTIFY,                                  \
+                ZB_ZCL_ARRAY_SIZE(identify_server_attr_list, zb_zcl_attr_t), \
+                (identify_server_attr_list),                                 \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                  \
+                ZB_ZCL_MANUF_CODE_INVALID),                                  \
+            ZB_ZCL_CLUSTER_DESC(                                             \
+                ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,                             \
+                ZB_ZCL_ARRAY_SIZE(level_attr_list, zb_zcl_attr_t),           \
+                (level_attr_list),                                           \
+                ZB_ZCL_CLUSTER_SERVER_ROLE,                                  \
+                ZB_ZCL_MANUF_CODE_INVALID),                                  \
+            ZB_ZCL_CLUSTER_DESC(                                             \
+                ZB_ZCL_CLUSTER_ID_IDENTIFY,                                  \
+                ZB_ZCL_ARRAY_SIZE(identify_client_attr_list, zb_zcl_attr_t), \
+                (identify_client_attr_list),                                 \
+                ZB_ZCL_CLUSTER_CLIENT_ROLE,                                  \
+                ZB_ZCL_MANUF_CODE_INVALID),                                  \
+    }
+
 #define ZB_DECLARE_SIMPLE_DESC_TYPE(in_clust_num, out_clust_num) \
     ZB_DECLARE_SIMPLE_DESC(in_clust_num, out_clust_num)
 
     ZB_DECLARE_SIMPLE_DESC_TYPE(ZB_BOOL_IN_CLUSTER_NUM, ZB_BOOL_OUT_CLUSTER_NUM);
-    //ZB_DECLARE_SIMPLE_DESC_TYPE(ZB_CVC_IN_CLUSTER_NUM, ZB_CVC_OUT_CLUSTER_NUM);
     ZB_DECLARE_SIMPLE_DESC_TYPE(ZB_SENSOR_IN_CLUSTER_NUM, ZB_SENSOR_OUT_CLUSTER_NUM);
 
 #define ZB_ZCL_DECLARE_HA_SIMPLE_DESC(ep_name, ep_id, in_clust_num, out_clust_num) \
@@ -194,6 +274,21 @@ namespace
                                 0,                                                                    \
                                 NULL)
 
+#define ZB_DECLARE_CLASSIFIER_EP(ep_name, ep_id, cluster_list)                                        \
+    ZB_ZCL_DECLARE_HA_SIMPLE_DESC(ep_name, ep_id,                                                     \
+                                  ZB_CLASSIFIER_IN_CLUSTER_NUM, ZB_CLASSIFIER_OUT_CLUSTER_NUM);       \
+    ZBOSS_DEVICE_DECLARE_REPORTING_CTX(reporting_info##ep_name,                                       \
+                                       1);                                                            \
+    ZB_AF_DECLARE_ENDPOINT_DESC(ep_name, ep_id, ZB_AF_HA_PROFILE_ID,                                  \
+                                0,                                                                    \
+                                NULL,                                                                 \
+                                ZB_ZCL_ARRAY_SIZE(cluster_list, zb_zcl_cluster_desc_t), cluster_list, \
+                                (zb_af_simple_desc_1_1_t *)&simple_desc_##ep_name,                    \
+                                1,                                                                    \
+                                reporting_info##ep_name,                                              \
+                                0,                                                                    \
+                                NULL)
+
 #define ZB_DECLARE_CVC_EP(ep_name, ep_id, cluster_list)                                               \
     ZB_ZCL_DECLARE_HA_SIMPLE_DESC(ep_name, ep_id,                                                     \
                                   ZB_CVC_IN_CLUSTER_NUM, ZB_CVC_OUT_CLUSTER_NUM);                     \
@@ -210,6 +305,13 @@ namespace
                                 reporting_info##ep_name,                                              \
                                 1,                                                                    \
                                 cvc_alarm_info##ep_name)
+
+    /*#define ZB_ZCL_DECLARE_REL_HUMIDITY_MEASUREMENT_ATTRIB_LIST(attr_list, value, min_value, max_value) \
+        ZB_ZCL_START_DECLARE_ATTRIB_LIST_CLUSTER_REVISION(attr_list, ZB_ZCL_WATER_CONTENT_MEASUREMENT)  \
+        ZB_ZCL_SET_ATTR_DESC(ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, (value))                    \
+        ZB_ZCL_SET_ATTR_DESC(ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_MIN_VALUE_ID, (min_value))            \
+        ZB_ZCL_SET_ATTR_DESC(ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_MAX_VALUE_ID, (max_value))            \
+        ZB_ZCL_FINISH_DECLARE_ATTRIB_LIST*/
 
 #define ZB_ZCL_DECLARE_WEATHER_STATION_DESC(                                    \
     ep_name,                                                                    \
@@ -251,14 +353,15 @@ namespace
         (zb_af_simple_desc_1_1_t *)&simple_desc_##ep_name,             \
         ZB_SENSORS_ATTR_COUNT, reporting_info##ep_name, 0, NULL)
 
-#define ZBOSS_DECLARE_DEVICE_CTX_7_EP(device_ctx_name,                   \
+#define ZBOSS_DECLARE_DEVICE_CTX_8_EP(device_ctx_name,                   \
                                       ep1_name,                          \
                                       ep2_name,                          \
                                       ep3_name,                          \
                                       ep4_name,                          \
                                       ep5_name,                          \
                                       ep6_name,                          \
-                                      ep7_name)                          \
+                                      ep7_name,                          \
+                                      ep8_name)                          \
     ZB_AF_START_DECLARE_ENDPOINT_LIST(ep_list_##device_ctx_name)         \
     &ep1_name,                                                           \
         &ep2_name,                                                       \
@@ -266,7 +369,8 @@ namespace
         &ep4_name,                                                       \
         &ep5_name,                                                       \
         &ep6_name,                                                       \
-        &ep7_name                                                        \
+        &ep7_name,                                                       \
+        &ep8_name                                                        \
             ZB_AF_FINISH_DECLARE_ENDPOINT_LIST;                          \
     ZBOSS_DECLARE_DEVICE_CTX(device_ctx_name, ep_list_##device_ctx_name, \
                              (ZB_ZCL_ARRAY_SIZE(ep_list_##device_ctx_name, zb_af_endpoint_desc_t *)))
@@ -415,7 +519,7 @@ namespace
         ZB_NUTRI_ENDPOINT,
         nutriClusters);
 
-    // Sensors.
+    // Env sensor.
     ZB_ZCL_DECLARE_TEMP_MEASUREMENT_ATTRIB_LIST(
         tempAttrList,
         &iface.getContext().tempAttr.measure_value,
@@ -453,8 +557,27 @@ namespace
         ZB_SENSORS_ENDPOINT,
         sensorClusters);
 
+    // Classifier.
+    ZB_ZCL_DECLARE_ON_OFF_ATTRIB_LIST(
+        classifierAttrList,
+        &iface.getContext().classificationAttr.on_off);
+
+    ZB_DECLARE_CLASSIFIER_CLUSTER_LIST(
+        classifierClusters,
+        basicAttrList,
+        identifyAttrList,
+        identifyClientAttrList,
+        groupsAttrList,
+        scenesAttrList,
+        classifierAttrList);
+
+    ZB_DECLARE_CLASSIFIER_EP(
+        classifierEp,
+        ZB_CLASSIFIER_ENDPOINT,
+        classifierClusters);
+
     // Endpoint declatarion.
-    ZBOSS_DECLARE_DEVICE_CTX_7_EP(
+    ZBOSS_DECLARE_DEVICE_CTX_8_EP(
         ctrlCtx,
         fanEp,
         led1Ep,
@@ -462,7 +585,8 @@ namespace
         ledStrategyEp,
         relayWaterEp,
         relayNutriEp,
-        sensorsEp);
+        sensorsEp,
+        classifierEp);
 }
 
 extern "C"

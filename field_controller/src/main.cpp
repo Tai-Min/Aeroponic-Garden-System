@@ -5,7 +5,9 @@
 #include <zephyr/usb/usb_device.h>
 
 #include "zigbee.hpp"
+#include "sensors.hpp"
 #include "controllers.hpp"
+#include "classifier.hpp"
 #include "config/hardware.hpp"
 #include "config/software.hpp"
 
@@ -14,9 +16,13 @@ LOG_MODULE_REGISTER(main, MAIN_LOG_LEVEL);
 namespace
 {
 	using DigOut = app::io::digital::Output;
+	using AnOut = app::io::analog::PWM;
+	using AnIn = app::io::analog::ADC;
 	using ClosedController = app::io::controllers::ClosedController;
 	using SensorResult = app::networking::zigbee::SensorResult;
+	using EnvSensor = app::sensors::environmental::BME688;
 	using Zigbee = app::networking::zigbee::ZigbeeInterface;
+	using Classifier = app::inference::classifiers::Classifier;
 
 	/**
 	 * @brief Thread function to control growth lights.
@@ -78,29 +84,70 @@ namespace
 
 namespace
 {
-	constexpr gpio_dt_spec errPin = GPIO_DT_SPEC_GET(ERROR_PIN, gpios);
-	constexpr gpio_dt_spec blinkPin = GPIO_DT_SPEC_GET(BLINK_PIN, gpios);
-	constexpr gpio_dt_spec waterPin = GPIO_DT_SPEC_GET(WATER_PIN, gpios);
-	constexpr gpio_dt_spec nutriPin = GPIO_DT_SPEC_GET(NUTRI_PIN, gpios);
-	constexpr gpio_dt_spec fanPin = GPIO_DT_SPEC_GET(FAN_PIN, gpios);
+	constexpr const gpio_dt_spec errPin = GPIO_DT_SPEC_GET(ERROR_PIN, gpios);
+	constexpr const gpio_dt_spec blinkPin = GPIO_DT_SPEC_GET(BLINK_PIN, gpios);
+	constexpr const gpio_dt_spec waterPin = GPIO_DT_SPEC_GET(WATER_PIN, gpios);
+	constexpr const gpio_dt_spec nutriPin = GPIO_DT_SPEC_GET(NUTRI_PIN, gpios);
+	constexpr const gpio_dt_spec fanPin = GPIO_DT_SPEC_GET(FAN_PIN, gpios);
 
-	Zigbee &zigbee = Zigbee::getInterface();
+	EnvSensor envSensor(DEVICE_DT_GET(SENSOR_DEVICE));
+	Classifier classifier;
 
-	DigOut errLed = DigOut("Error LED");
-	DigOut blinkLed = DigOut("Blink LED");
+	constexpr Zigbee &zigbee = Zigbee::getInterface();
 
-	DigOut relayWater = DigOut("Water Valve");
-	DigOut relayNutri = DigOut("Nutri Valve");
-	DigOut fan = DigOut("Air Fan");
+	DigOut errLed = DigOut(errPin, "Error LED");
+	DigOut blinkLed = DigOut(blinkPin, "Blink LED");
 
-	ClosedController led1 = ClosedController();
-	ClosedController led2 = ClosedController();
+	DigOut relayWater = DigOut(waterPin, "Water Valve");
+	DigOut relayNutri = DigOut(nutriPin, "Nutri Valve");
+	DigOut fan = DigOut(fanPin, "Air Fan");
+
+	constexpr const device *ledDevice = DEVICE_DT_GET(LED_PWM);
+	constexpr const device *ledSensorDevice = DEVICE_DT_GET(LED_ADC);
+
+	ClosedController led1 = ClosedController(*ledDevice, LED1_CHANNEL,
+											 *ledSensorDevice,
+											 DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), LED1_ADC_CHANNEL));
+	ClosedController led2 = ClosedController(*ledDevice, LED2_CHANNEL,
+											 *ledSensorDevice,
+											 DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), LED2_ADC_CHANNEL));
 
 	K_THREAD_DEFINE(lightThreadId, LIGHT_CTRL_THREAD_STACK_SIZE,
 					lightCtrlThread, NULL, NULL, NULL,
 					1, 0, 10000);
 }
 
+#ifdef DATASET_COLLECTOR
+int main()
+{
+	if (usb_enable(NULL))
+	{
+		LOG_ERR("Failed to initialize USB");
+		handleCriticalError();
+	}
+
+	LOG_INF("Application core starting");
+
+	k_sleep(K_SECONDS(5));
+
+	if (!initHardware())
+	{
+		LOG_ERR("Hardware initialization failed");
+		handleCriticalError();
+	}
+
+	while (hardwareGood())
+	{
+		k_sleep(K_MSEC(100));
+		SensorResult res = sensorReadCallback();
+		printk("%.3f, %.3f, %.3f, %.3f\n", res.temperature, res.pressure, res.humidity, res.gasResistance / 10000.0);
+	}
+
+	handleCriticalError();
+
+	return 0;
+}
+#else
 int main()
 {
 	if (usb_enable(NULL))
@@ -134,6 +181,8 @@ int main()
 		handleCriticalError();
 	}
 
+	classifier.init();
+
 	if (settings_load())
 	{
 		LOG_ERR("Settings load failed");
@@ -146,13 +195,18 @@ int main()
 	{
 		k_sleep(K_SECONDS(5));
 		LOG_DBG("Blinking");
-		blinkLed.setState(1);
-		k_sleep(K_MSEC(100));
-		blinkLed.setState(0);
+
+		if (!zigbee.isIdentifying())
+		{
+			blinkLed.setState(1);
+			k_sleep(K_MSEC(100));
+			blinkLed.setState(0);
+		}
 	}
 	handleCriticalError();
-	return 0; // Won't reach hopefully.
+	return 0;
 }
+#endif
 
 namespace
 {
@@ -162,16 +216,16 @@ namespace
 		{
 			if (led1.getControlStrategy() == ClosedController::ControlStrategy::SELF)
 			{
-				LOG_INF("Updating growth light intensity");
+				LOG_DBG("Updating growth light intensity");
 				led1.update();
 				led2.update();
-				LOG_INF("Growth light control updated");
+				LOG_DBG("Growth light control updated");
 			}
 			else
 			{
-				LOG_INF("Growth lights are in ZIGBEE state - skipping update ");
+				LOG_DBG("Growth lights are in ZIGBEE state - skipping update ");
 			}
-			k_sleep(K_SECONDS(30));
+			k_sleep(K_MSEC(100));
 		}
 		LOG_ERR("Hardware failure detected - stopping light control thread");
 	}
@@ -181,13 +235,23 @@ namespace
 		SensorResult res;
 
 		LOG_INF("Performing sensor read");
+		if (!envSensor.read())
+		{
+			LOG_ERR("Failed to read environmental sensor");
+			res.ok = false;
+			return res;
+		}
+
+		res.temperature = envSensor.getTemperature();
+		res.humidity = envSensor.getHumidity();
+		res.pressure = envSensor.getPressure();
+		res.gasResistance = envSensor.getGasResistance();
+		res.classification = static_cast<uint8_t>(classifier.readNetwork(res.temperature, res.pressure, res.humidity, res.gasResistance));
+
 		if (hardwareGood())
 		{
-			LOG_INF("Sensor read done");
 			res.ok = true;
-			res.temperature = 0;
-			res.humidity = 1;
-			res.pressure = 2;
+			LOG_INF("Sensor read done");
 		}
 		else
 		{
@@ -243,12 +307,12 @@ namespace
 	bool initHardware()
 	{
 		LOG_INF("Initializing hardware");
-		if (!errLed.init(errPin))
+		if (!errLed.init())
 		{
 			LOG_ERR("Ironic - error LED init failed");
 			return false;
 		}
-		if (!blinkLed.init(blinkPin))
+		if (!blinkLed.init())
 		{
 			LOG_ERR("Blink LED init failed");
 			return false;
@@ -263,19 +327,24 @@ namespace
 			LOG_ERR("Growth LED 2 init failed");
 			return false;
 		}
-		if (!relayWater.init(waterPin))
+		if (!relayWater.init())
 		{
 			LOG_ERR("Water relay init failed");
 			return false;
 		}
-		if (!relayNutri.init(waterPin))
+		if (!relayNutri.init())
 		{
 			LOG_ERR("Nutri relay init failed");
 			return false;
 		}
-		if (!fan.init(waterPin))
+		if (!fan.init())
 		{
 			LOG_ERR("Fan init failed");
+			return false;
+		}
+		if (!envSensor.init())
+		{
+			LOG_ERR("Environmental sensor init failed");
 			return false;
 		}
 		if (!zigbee.init())
@@ -325,6 +394,11 @@ namespace
 			LOG_ERR("Fan failed");
 			return false;
 		}
+		if (!envSensor.ok())
+		{
+			LOG_ERR("Environmental sensor failed");
+			return false;
+		}
 		if (!zigbee.ok())
 		{
 			LOG_ERR("Zigbee failed");
@@ -340,7 +414,10 @@ namespace
 		{
 			blinkLed.setState(0);
 		}
-		// force off identify led...
+		if (zigbee.ok())
+		{
+			zigbee.cleanup();
+		}
 		if (errLed.ok())
 		{
 			for (uint8_t i = 0; i < 10; i++)

@@ -7,9 +7,13 @@
 #define NUTRI_PIN DT_ALIAS(driver_nutri)
 #define FAN_PIN DT_ALIAS(driver_fan)
 
+// Zigbee hardware.
 #define ZIGBEE_IDENTIFY_MODE_BUTTON DK_BTN1_MSK
 #define ZIGBEE_FACTORY_RESET_BUTTON ZIGBEE_IDENTIFY_MODE_BUTTON
 #define ZIGBEE_IDENTIFY_LED_PIN DT_ALIAS(led2) // Blue LED
+
+// Environmental sensor.
+#define SENSOR_DEVICE DT_ALIAS(env_sensor)
 
 #define SENSOR_TEMP_CELSIUS_MIN -40
 #define SENSOR_TEMP_CELSIUS_MAX 85
@@ -21,3 +25,20 @@
 
 #define SENSOR_HUMIDITY_PERCENT_MIN 10
 #define SENSOR_HUMIDITY_PERCENT_MAX 90
+
+// Growth LEDs.
+#define LED_PWM DT_ALIAS(growth_pwm)
+
+#define LED1_CHANNEL 1
+#define LED2_CHANNEL 2
+
+// Growth LED sensors.
+#define LED_ADC DT_PHANDLE(DT_PATH(zephyr_user), io_channels)
+#define LED_ADC_RESOLUTION 12
+#define LED_ADC_DIVIDER_TO_U8 16
+#define LED_ADC_GAIN ADC_GAIN_1
+#define LED_ADC_REFERENCE ADC_REF_INTERNAL
+#define LED_ADC_ACQUISITION_TIME ADC_ACQ_TIME_DEFAULT
+
+#define LED1_ADC_CHANNEL 0
+#define LED2_ADC_CHANNEL 1

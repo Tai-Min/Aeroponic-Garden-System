@@ -1,37 +1,6 @@
 #include <zephyr/dt-bindings/ipc_service/static_vrings.h>
 
 / {
-	/*soc {
-		nordic_ram_flash_controller: nordic_ram-flash-controller@0 {
-			compatible = "zephyr,sim-flash";
-			reg = <0x00000000 DT_SIZE_K(40)>;
-			#address-cells = <1>;
-			#size-cells = <1>;
-			erase-value = <0xff>;
-			label = "nordic_ram_flash_flash_controller";
-
-			flash_sim0: flash_sim@0 {
-				status = "okay";
-				compatible = "soc-nv-flash";
-				label = "simulated_flash";
-				erase-block-size = <4096>;
-				write-block-size = <4>;
-				reg = <0x00000000 DT_SIZE_K(256)>;
-
-				partitions {
-					compatible = "fixed-partitions";
-					#address-cells = <1>;
-					#size-cells = <1>;
-
-					slot2_partition: partition@0 {
-						label = "image-2";
-						reg = <0x00000000 0x00000A000>;
-					};
-				};
-			};
-		};
-	};*/
-
 	chosen {
 		zephyr,console = &cdc_acm_uart0;
 		zephyr,shell-uart = &cdc_acm_uart0;
@@ -62,6 +31,31 @@
 			gpios = <&gpio0 12 GPIO_ACTIVE_HIGH>;
 			label = "Fan driver";
 		};
+		led1: led1 {
+			gpios = <&gpio0 8 GPIO_ACTIVE_HIGH>;
+			label = "Growth LED 1";
+		};
+		led2: led2 {
+			gpios = <&gpio0 9 GPIO_ACTIVE_HIGH>;
+			label = "Growth LED 2";
+		};
+	};
+
+	pwmdrivers: pwmdrivers {
+		compatible = "pwm-leds";
+		led1_pwm: led1_pwm {
+			pwms = <&pwm1 1 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
+			label = "LED 1 PWM";
+		};
+
+		led2_pwm: led2_pwm {
+			pwms = <&pwm1 2 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
+			label = "LED 2 PWM";
+		};
+	};
+
+	zephyr,user {
+		io-channels = <&adc 0>, <&adc 1>;
 	};
 
 	aliases {
@@ -69,11 +63,15 @@
 		driver-water = &driver_water;
 		driver-nutri = &driver_nutri;
 		driver-fan = &driver_fan;
+		env-sensor = &env_sensor;
+		led1-pwm = &led1_pwm;
+		led2-pwm = &led2_pwm;
+		growth-pwm = &pwm1;
 	};
 };
 
 &ipc0 {
-    zephyr,priority = <0 PRIO_COOP>;
+	zephyr,priority = <0 PRIO_COOP>;
 };
 
 &zephyr_udc0 {
@@ -84,9 +82,41 @@
 };
 
 &i2c1 {
-	bme688@76 {
-		compatible = "bosch,bme680";
+	env_sensor: bme688@76 {
+		compatible = "bosch,bme688";
 		label = "BME688";
 		reg = <0x76>;
 	};
+};
+
+&pinctrl {
+	pwm1_default_override: pwm1_default_override {
+		group1 {
+			psels = <NRF_PSEL(PWM_OUT0, 1, 15)>,
+			        <NRF_PSEL(PWM_OUT1, 0, 8)>,
+			        <NRF_PSEL(PWM_OUT2, 0, 9)>;
+		};
+	};
+
+	pwm1_sleep_override: pwm1_sleep_override {
+		group1 {
+			psels = <NRF_PSEL(PWM_OUT0, 1, 15)>,
+			        <NRF_PSEL(PWM_OUT1, 0, 8)>,
+			        <NRF_PSEL(PWM_OUT2, 0, 9)>;
+			low-power-enable;
+		};
+	};
+};
+
+&pwm1 {
+	pinctrl-0 = <&pwm1_default_override>;
+	pinctrl-1 = <&pwm1_sleep_override>;
+	pinctrl-names = "default", "sleep";
+};
+
+&uart0 {
+	status = "disabled";
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-1;
+	/delete-property/ pinctrl-names;
 };
