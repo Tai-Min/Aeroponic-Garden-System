@@ -8,14 +8,14 @@ uc_bridge:
 temperature_observer:
   ros__parameters:
     water_tank_frame: water_tank
-    water_tank_sensor_addr: ""
-    min_water_temp: 0.0
-    max_water_temp: 0.0
+    water_tank_sensor_addr: "31-0414b06a36ff"
+    min_water_temp: 15.0
+    max_water_temp: 25.0
 
     nutri_tank_frame: nutri_tank
     nutri_tank_sensor_addr: "28-0416b07a36ff"
-    min_nutri_temp: 0.0
-    max_nutri_temp: 0.0
+    min_nutri_temp: 15.0
+    max_nutri_temp: 25.0
 
     max_recv_errors: 10
 
@@ -61,12 +61,12 @@ temperature_observer:
 
       check_period: 1.0
 
-      min_ppm: 0.0
-      max_ppm: 0.0
+      min_ppm: 600.0
+      max_ppm: 800.0
       ppm_value_invalidate_time: 5.0
 
-      min_ph: 0.0
-      max_ph: 0.0
+      min_ph: 6.0
+      max_ph: 8.0
       ph_value_invalidate_time: 5.0
       
       led_pin: 22

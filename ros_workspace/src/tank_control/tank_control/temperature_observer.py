@@ -48,11 +48,11 @@ class TemperatureObserver(Node):
         self.get_logger().info(
             f"Nutri tank frame is: {self.__nutri_tank_frame}")
 
-        self.__water_sensor_addr = self.__max_nutri_temp = self.get_parameter(
+        self.__water_sensor_addr = self.get_parameter(
             "water_tank_sensor_addr").get_parameter_value().string_value
         self.get_logger().info(
             f"Water tank sensor address is: {self.__water_sensor_addr}")
-        self.__nutri_sensor_addr = self.__max_nutri_temp = self.get_parameter(
+        self.__nutri_sensor_addr = self.get_parameter(
             "nutri_tank_sensor_addr").get_parameter_value().string_value
         self.get_logger().info(
             f"Nutri tank sensor address is: {self.__nutri_sensor_addr}")
