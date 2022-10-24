@@ -10,7 +10,10 @@ class ZigbeeBridge(Node):
     def __init__(self) -> None:
         super().__init__("zigbee_bridge")
 
-        self.__namespace = "field"
+        self.declare_parameter("namespace", "field")
+
+        self.__namespace = self.get_parameter(
+            "namespace").get_parameter_value().string_value
 
         self.__cmd_subscriber = self.create_subscription(
             Command,
@@ -55,6 +58,8 @@ class ZigbeeBridge(Node):
             return State.TYPE_PRESSURE
         elif key == "humidity":
             return State.TYPE_HUMIDITY
+        elif key == "onOff":
+            return State.TYPE_CLASSIFICATION
         return State.TYPE_UNKNOWN
 
     def __on_mqtt_msg(self, client, userdata, msg) -> None:

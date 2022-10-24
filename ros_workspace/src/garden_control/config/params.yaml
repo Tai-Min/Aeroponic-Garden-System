@@ -1,4 +1,15 @@
-/field:
-  zigbee_bridge:
-    ros__parameters:
-      namespace: field
+
+zigbee_bridge:
+  ros__parameters:
+    namespace: field
+
+garden_controller:
+  ros__parameters:
+    queue_size: 10
+    min_time_between_controls: 300
+    desired_temperature: 30.0
+    desired_pressure: 104.0
+    desired_humidity: 80.0
+    command_wait_time: 5
+    water_pumping_time: 10
+    nutri_pumping_time: 10

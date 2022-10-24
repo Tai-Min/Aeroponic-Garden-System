@@ -21,7 +21,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'zigbee_bridge = garden_control.zigbee_bridge:main'
+            'zigbee_bridge = garden_control.zigbee_bridge:main',
+            'garden_controller = garden_control.garden_controller:main'
         ],
     },
 )

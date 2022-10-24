@@ -22,4 +22,12 @@ def generate_launch_description() -> LaunchDescription:
     )
     ld.add_action(zigbee_bridge)
 
+    garden_controller = Node(
+        package=pkg_name,
+        executable="garden_controller",
+        name="garden_controller",
+        parameters=[config]
+    )
+    ld.add_action(garden_controller)
+
     return ld
