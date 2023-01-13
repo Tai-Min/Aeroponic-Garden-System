@@ -1,4 +1,6 @@
 # Thingy:53 Aeroponic Garden
+2nd place in [Smarter Sustainable World Challenge
+with Nordic Semiconductor](https://www.hackster.io/contests/smarter-sustainable-world). For details of the project itself see [Vertical Self Regulating Soilless Farm](https://www.hackster.io/Tai-Min/vertical-self-regulating-soilless-farm-a86d25)
 
 ## Physical setup
 ### The pot
